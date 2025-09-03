@@ -1,11 +1,4 @@
-import {
-  Body,
-  Controller,
-  Post,
-  UsePipes,
-  ValidationPipe,
-  Res,
-} from '@nestjs/common';
+import { Body, Controller, Post, Res, Put } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Role } from '../../constants/enums';
 import CreateUserDto from './dtos/create-user.dto';
@@ -13,6 +6,7 @@ import { Throttle, minutes } from '@nestjs/throttler';
 import UserLoginDto from './dtos/user-login.dto';
 import { Response } from 'express';
 import VerifyOtpDto from './dtos/verify-otp.dto';
+import ResendOtpDto from './dtos/resend-otp.dto';
 
 @Throttle({
   default: { ttl: minutes(1), limit: 10, blockDuration: minutes(1) },
@@ -25,14 +19,12 @@ export class AuthController {
   );
 
   @Post('patient')
-  @UsePipes(new ValidationPipe({ transform: true }))
   async create(@Body() user: CreateUserDto) {
     const role: Role = Role.PATIENT;
     await this.authService.create(user, role);
   }
 
   @Post('login')
-  @UsePipes(new ValidationPipe({ transform: true }))
   async login(
     @Body() userLoginDto: UserLoginDto,
     @Res() res: Response,
@@ -49,7 +41,6 @@ export class AuthController {
   }
 
   @Post('verify-otp')
-  @UsePipes(new ValidationPipe({ transform: true }))
   async verifyOtp(
     @Body() verifyOtpDto: VerifyOtpDto,
     @Res() res: Response,
@@ -60,6 +51,15 @@ export class AuthController {
     this.setAuthCookies(res, accessToken, refreshToken);
 
     return res.status(201).json({ user });
+  }
+
+  @Put('resend-otp')
+  async resendOtp(
+    @Body() resendOtpDto: ResendOtpDto,
+    @Res() res: Response,
+  ): Promise<Response> {
+    await this.authService.resendOtp(resendOtpDto);
+    return res.status(200).json();
   }
 
   private setAuthCookies(

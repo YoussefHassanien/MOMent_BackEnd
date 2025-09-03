@@ -17,6 +17,7 @@ import { LessThan, MoreThan } from 'typeorm';
 import JwtPayload from '../../guards/auth/jwt.payload';
 import { JwtService } from '@nestjs/jwt';
 import VerifyOtpDto from './dtos/verify-otp.dto';
+import ResendOtpDto from './dtos/resend-otp.dto';
 
 @Injectable()
 export class AuthService {
@@ -154,9 +155,9 @@ export class AuthService {
     return await this.generateAccessCredentials(user);
   }
 
-  async resendOtp(id: string) {
+  async resendOtp(resendOtpDto: ResendOtpDto) {
     const user = await AppDataSource.manager.findOneBy(User, {
-      globalId: id,
+      globalId: resendOtpDto.id,
     });
 
     if (!user) throw new UnauthorizedException('Unkwon user');
@@ -232,5 +233,3 @@ export class AuthService {
     };
   }
 }
-
-// swagger does not show the schemas of my dtos and the apis request bodies are not shown also

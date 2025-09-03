@@ -4,7 +4,7 @@ import { AppModule } from './app.module';
 import helmet from 'helmet';
 import * as cookieParser from 'cookie-parser';
 import * as morgan from 'morgan';
-import { VersioningType } from '@nestjs/common';
+import { VersioningType, ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -34,7 +34,7 @@ async function bootstrap() {
       documentFactory,
     );
   }
-
+  app.useGlobalPipes(new ValidationPipe({ transform: true }));
   await app.listen(process.env.SERVER_PORT ?? 3000);
 }
 bootstrap()
