@@ -4,7 +4,7 @@ import AuthGuard from './guards/auth/auth.guard';
 import { JwtService } from '@nestjs/jwt';
 import { Role } from './constants/enums';
 
-@Controller({ version: '1' })
+@Controller('app')
 export class AppController {
   private readonly cookiesExpirationTime: number = parseInt(
     process.env.COOKIES_EXPIRATION_TIME!,

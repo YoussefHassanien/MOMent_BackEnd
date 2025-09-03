@@ -96,7 +96,7 @@ export class AuthService {
         },
       });
 
-      if (expiredOtps) {
+      if (expiredOtps.length) {
         expiredOtps.forEach((otp, i) => {
           AppDataSource.manager
             .delete(OTP, otp.id)
@@ -107,17 +107,17 @@ export class AuthService {
               console.log(`Error deleting expired otp number ${i + 1}`, error);
             });
         });
-
-        const validOtp = await AppDataSource.manager.findOne(OTP, {
-          where: {
-            user: { id: existingUser.id },
-            used: false,
-            createdAt: MoreThan(this.tenMinutesAgo),
-          },
-        });
-
-        if (!validOtp) await this.generateOtp(existingUser);
       }
+
+      const validOtp = await AppDataSource.manager.findOne(OTP, {
+        where: {
+          user: { id: existingUser.id },
+          used: false,
+          createdAt: MoreThan(this.tenMinutesAgo),
+        },
+      });
+
+      if (!validOtp) await this.generateOtp(existingUser);
     }
 
     return { id: existingUser.globalId };
@@ -128,8 +128,7 @@ export class AuthService {
       globalId: verifyOtpDto.id,
     });
 
-    if (!user) throw new UnauthorizedException('Unkown user');
-    console.log(user.globalId);
+    if (!user) throw new UnauthorizedException('Unkwon user');
 
     const isValidOtp = await AppDataSource.manager.findOne(OTP, {
       where: {
@@ -141,7 +140,9 @@ export class AuthService {
 
     if (!isValidOtp) throw new BadRequestException('Invalid otp');
 
-    const otpCreationDate = new Date(isValidOtp.createdAt);
+    const otpCreationDate = new Date(
+      isValidOtp.createdAt.getTime() + this.egyptTime,
+    );
     const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
 
     if (tenMinutesAgo > otpCreationDate) throw new GoneException('Expired otp');
@@ -151,6 +152,20 @@ export class AuthService {
     });
 
     return await this.generateAccessCredentials(user);
+  }
+
+  async resendOtp(id: string) {
+    const user = await AppDataSource.manager.findOneBy(User, {
+      globalId: id,
+    });
+
+    if (!user) throw new UnauthorizedException('Unkwon user');
+
+    await AppDataSource.manager.delete(OTP, {
+      user: user,
+    });
+
+    await this.generateOtp(user);
   }
 
   private async generateOtp(user: User) {
@@ -217,3 +232,5 @@ export class AuthService {
     };
   }
 }
+
+// swagger does not show the schemas of my dtos and the apis request bodies are not shown also

@@ -14,27 +14,24 @@ import UserLoginDto from './dtos/user-login.dto';
 import { Response } from 'express';
 import VerifyOtpDto from './dtos/verify-otp.dto';
 
-@Controller({ version: '1' })
+@Throttle({
+  default: { ttl: minutes(1), limit: 10, blockDuration: minutes(1) },
+})
+@Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
   private readonly cookiesExpirationTime: number = parseInt(
     process.env.COOKIES_EXPIRATION_TIME!,
   );
 
-  @Throttle({
-    default: { ttl: minutes(1), limit: 10, blockDuration: minutes(1) },
-  })
-  @Post('auth/patient')
+  @Post('patient')
   @UsePipes(new ValidationPipe({ transform: true }))
   async create(@Body() user: CreateUserDto) {
     const role: Role = Role.PATIENT;
     await this.authService.create(user, role);
   }
 
-  @Throttle({
-    default: { ttl: minutes(1), limit: 10, blockDuration: minutes(1) },
-  })
-  @Post('auth/login')
+  @Post('login')
   @UsePipes(new ValidationPipe({ transform: true }))
   async login(
     @Body() userLoginDto: UserLoginDto,
@@ -51,10 +48,7 @@ export class AuthController {
     return res.status(201).json({ user });
   }
 
-  @Throttle({
-    default: { ttl: minutes(1), limit: 10, blockDuration: minutes(1) },
-  })
-  @Post('auth/verify-otp')
+  @Post('verify-otp')
   @UsePipes(new ValidationPipe({ transform: true }))
   async verifyOtp(
     @Body() verifyOtpDto: VerifyOtpDto,
