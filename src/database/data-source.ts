@@ -19,7 +19,7 @@ export const AppDataSource = new DataSource({
 
 AppDataSource.initialize()
   .then(() => {
-    console.log('Database connection successeded');
+    console.log('Database connection succeeded');
   })
   .catch((error) => {
     console.log('Database connection failed', error);

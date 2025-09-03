@@ -8,13 +8,14 @@ import { OTP } from '../../database/entities/otp.entity';
 import { randomUUID } from 'crypto';
 import { AppDataSource } from '../../database/data-source';
 import { randomInt } from 'crypto';
-import { LessThan } from 'typeorm';
+import { LessThan, MoreThan } from 'typeorm';
 import JwtPayload from '../../guards/auth/jwt.payload';
 import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
   constructor(private readonly jwtService: JwtService) {}
+  private readonly egyptTime: number = parseInt(process.env.EGYPT_TIME!);
   private readonly rounds: number = 12;
   async create(user: CreateUserDto, role: Role) {
     if (user.password !== user.confirmPassword) {
@@ -101,28 +102,36 @@ export class AuthService {
         where: {
           user: { id: existingUser.id },
           used: false,
-          createdAt: LessThan(new Date(Date.now() - 10 * 60 * 1000)),
+          createdAt: LessThan(
+            new Date(Date.now() - (10 * 60 * 1000 + this.egyptTime)),
+          ),
         },
       });
 
-      if (expiredOtps.length) {
-        expiredOtps.forEach((otp) => {
+      if (expiredOtps) {
+        expiredOtps.forEach((otp, i) => {
           AppDataSource.manager
-            .remove(OTP, otp)
+            .delete(OTP, otp.id)
             .then(() => {
-              console.log(
-                `Removed expired otp of id: ${otp.id} and user id: ${otp.user.id}`,
-              );
+              console.log(`Otp number ${i + 1} is deleted successfully`);
             })
             .catch((error) => {
-              console.log(
-                `Error removig expired otp of id: ${otp.id} and user id: ${otp.user.id}`,
-                error,
-              );
+              console.log(`Error deleting expired otp number ${i + 1}`, error);
             });
         });
+
+        const validOtp = await AppDataSource.manager.findOne(OTP, {
+          where: {
+            user: { id: existingUser.id },
+            used: false,
+            createdAt: MoreThan(
+              new Date(Date.now() - (10 * 60 * 1000 + this.egyptTime)),
+            ),
+          },
+        });
+
+        if (!validOtp) await this.generateOtp(existingUser);
       }
-      await this.generateOtp(existingUser);
     }
 
     return { id: existingUser.globalId };
