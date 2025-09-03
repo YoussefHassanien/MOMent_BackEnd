@@ -1,14 +1,20 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import CreateUserDto from './dtos/create-user.dto';
+import UserLoginDto from './dtos/user-login.dto';
 import { Role } from '../../constants/enums';
 import * as bcrypt from 'bcrypt';
 import { User } from '../../database/entities/user.entity';
+import { OTP } from '../../database/entities/otp.entity';
 import { randomUUID } from 'crypto';
 import { AppDataSource } from '../../database/data-source';
+import { randomInt } from 'crypto';
+import { LessThan } from 'typeorm';
+import JwtPayload from '../../guards/auth/jwt.payload';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
-  constructor() {}
+  constructor(private readonly jwtService: JwtService) {}
   private readonly rounds: number = 12;
   async create(user: CreateUserDto, role: Role) {
     if (user.password !== user.confirmPassword) {
@@ -32,17 +38,134 @@ export class AuthService {
       this.rounds,
     );
 
-    const newUser = new User();
-    newUser.globalId = randomUUID();
-    newUser.email = user.email;
-    newUser.mobileNumber = user.mobileNumber;
-    newUser.name = `${user.firstName} ${user.lastName}`;
-    newUser.password = hashedPassword;
-    newUser.role = role;
-    newUser.language = user.language;
+    await AppDataSource.manager.insert(User, {
+      globalId: randomUUID(),
+      email: user.email,
+      mobileNumber: user.mobileNumber,
+      name: `${user.firstName} ${user.lastName}`,
+      password: hashedPassword,
+      role: role,
+      language: user.language,
+    });
+  }
 
-    const createdUser = await AppDataSource.manager.save(newUser);
+  async login(userLoginDto: UserLoginDto) {
+    const existingUser = await AppDataSource.manager.findOne(User, {
+      where: [
+        { email: userLoginDto.emailOrMobileNumber },
+        { mobileNumber: userLoginDto.emailOrMobileNumber },
+      ],
+    });
 
-    return createdUser;
+    if (!existingUser)
+      throw new BadRequestException('Invalid email/mobile number or password');
+
+    const isCorrectPassword = await bcrypt.compare(
+      userLoginDto.password,
+      existingUser.password,
+    );
+
+    if (!isCorrectPassword)
+      throw new BadRequestException('Invalid email/mobile number or password');
+
+    const existingOtp = await AppDataSource.manager.findOne(OTP, {
+      where: {
+        user: { id: existingUser.id },
+        used: true,
+      },
+    });
+
+    if (existingOtp) {
+      const payload = new JwtPayload();
+      payload.email = existingUser.email;
+      payload.id = existingUser.id;
+      payload.mobileNumber = existingUser.mobileNumber;
+      payload.role = existingUser.role;
+
+      const accessToken = await this.generateAccessToken(payload);
+      const refreshToken = await this.generateRefreshToken(payload);
+
+      return {
+        accessToken,
+        refreshToken,
+        user: {
+          id: existingUser.globalId,
+          name: existingUser.name,
+          mobileNumber: existingUser.mobileNumber,
+          email: existingUser.email,
+          role: existingUser.role,
+        },
+      };
+    } else {
+      const expiredOtps = await AppDataSource.manager.find(OTP, {
+        where: {
+          user: { id: existingUser.id },
+          used: false,
+          createdAt: LessThan(new Date(Date.now() - 10 * 60 * 1000)),
+        },
+      });
+
+      if (expiredOtps.length) {
+        expiredOtps.forEach((otp) => {
+          AppDataSource.manager
+            .remove(OTP, otp)
+            .then(() => {
+              console.log(
+                `Removed expired otp of id: ${otp.id} and user id: ${otp.user.id}`,
+              );
+            })
+            .catch((error) => {
+              console.log(
+                `Error removig expired otp of id: ${otp.id} and user id: ${otp.user.id}`,
+                error,
+              );
+            });
+        });
+      }
+      await this.generateOtp(existingUser);
+    }
+
+    return { id: existingUser.globalId };
+  }
+
+  private async generateOtp(user: User) {
+    const otpValue = randomInt(100000, 1000000);
+    const newOtp = AppDataSource.manager.create(OTP, {
+      value: otpValue,
+      used: false,
+      user: user,
+    });
+
+    await AppDataSource.manager.save(newOtp);
+  }
+
+  private async generateAccessToken(payload: JwtPayload) {
+    const tokenPayload = {
+      sub: payload.id,
+      email: payload.email,
+      mobileNumber: payload.mobileNumber,
+      role: payload.role,
+    };
+
+    const accessToken = await this.jwtService.signAsync(tokenPayload, {
+      expiresIn: process.env.ACCESS_TOKEN_EXPIRATION_TIME,
+    });
+
+    return accessToken;
+  }
+
+  private async generateRefreshToken(payload: JwtPayload) {
+    const tokenPayload = {
+      sub: payload.id,
+      email: payload.email,
+      mobileNumber: payload.mobileNumber,
+      role: payload.role,
+    };
+
+    const refreshToken = await this.jwtService.signAsync(tokenPayload, {
+      expiresIn: process.env.REFRESH_TOKEN_EXPIRATION_TIME,
+    });
+
+    return refreshToken;
   }
 }

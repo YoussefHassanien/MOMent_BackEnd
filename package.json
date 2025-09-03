@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "These APIs are made for MOMent project that mainly serve pregnant women",
   "author": "YOUSSEF HASSANIEN",
+  "type": "commonjs",
   "private": true,
   "license": "MIT LICENSE",
   "scripts": {
@@ -13,8 +14,8 @@
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-    "migrate:generate": "npx typeorm-ts-node-commonjs migration:generate src/database/migrations/Init -d src/database/data-source.ts",
-    "migrate:run": "npx typeorm-ts-node-commonjs migration:run -d src/database/data-source.ts"
+    "migrate:generate": "npx typeorm-ts-node-commonjs migration:generate ./src/database/migrations/Init -d ./src/database/data-source.ts",
+    "migrate:run": "npx typeorm-ts-node-commonjs migration:run -d ./src/database/data-source.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

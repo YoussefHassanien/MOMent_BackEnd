@@ -28,7 +28,7 @@ export class OTP {
   @IsPositive()
   value: number;
 
-  @Column()
+  @Column({ default: false })
   @IsNotEmpty()
   @IsBoolean()
   used: boolean;

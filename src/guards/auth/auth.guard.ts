@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Role } from '../../constants/enums';
-import JwtPayload from './jwtPayload.Interface';
+import JwtPayload from './jwt.payload';
 
 @Injectable()
 class AuthGuard implements CanActivate {
@@ -21,13 +21,6 @@ class AuthGuard implements CanActivate {
   ) {}
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    // const authHeader: string | undefined = request.headers['authorization'];
-
-    // if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    //   throw new UnauthorizedException('No token provided');
-    // }
-
-    // const token = authHeader.split(' ')[1];
     const token: string | undefined = request.signedCookies['accessToken'];
     if (!token) {
       throw new UnauthorizedException('No token provided');

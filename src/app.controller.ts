@@ -10,7 +10,7 @@ export class AppController {
     process.env.COOKIES_EXPIRATION_TIME!,
   );
   @Get()
-  // @UseGuards(new AuthGuard(new JwtService(), Role.DOCTOR))
+  //@UseGuards(new AuthGuard(new JwtService(), Role.DOCTOR))
   HealthCheck(@Req() req: Request, @Res() res: Response): Response {
     res.cookie('test', 'testCookie', {
       expires: new Date(Date.now() + this.cookiesExpirationTime),

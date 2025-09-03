@@ -13,9 +13,8 @@ export const AppDataSource = new DataSource({
     rejectUnauthorized: false,
   },
   entities: [User, OTP, Patient, VitalSign, VitalSignType],
-  migrations: ['migrations/*.ts'],
+  migrations: ['src/database/migrations/*.js'],
   synchronize: false,
-  logging: true,
 });
 
 AppDataSource.initialize()
