@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import CreateUserDto from './dtos/create-user.dto';
 import UserLoginDto from './dtos/user-login.dto';
 import { Role } from '../../constants/enums';
@@ -11,12 +15,16 @@ import { randomInt } from 'crypto';
 import { LessThan, MoreThan } from 'typeorm';
 import JwtPayload from '../../guards/auth/jwt.payload';
 import { JwtService } from '@nestjs/jwt';
+import VerifyOtpDto from './dtos/verify-otp.dto';
 
 @Injectable()
 export class AuthService {
   constructor(private readonly jwtService: JwtService) {}
   private readonly egyptTime: number = parseInt(process.env.EGYPT_TIME!);
   private readonly rounds: number = 12;
+  private readonly tenMinutesAgo = new Date(
+    Date.now() - (10 * 60 * 1000 + this.egyptTime),
+  );
   async create(user: CreateUserDto, role: Role) {
     if (user.password !== user.confirmPassword) {
       throw new BadRequestException('Passwords did not match');
@@ -77,34 +85,13 @@ export class AuthService {
     });
 
     if (existingOtp) {
-      const payload = new JwtPayload();
-      payload.email = existingUser.email;
-      payload.id = existingUser.id;
-      payload.mobileNumber = existingUser.mobileNumber;
-      payload.role = existingUser.role;
-
-      const accessToken = await this.generateAccessToken(payload);
-      const refreshToken = await this.generateRefreshToken(payload);
-
-      return {
-        accessToken,
-        refreshToken,
-        user: {
-          id: existingUser.globalId,
-          name: existingUser.name,
-          mobileNumber: existingUser.mobileNumber,
-          email: existingUser.email,
-          role: existingUser.role,
-        },
-      };
+      return await this.generateAccessCredentials(existingUser);
     } else {
       const expiredOtps = await AppDataSource.manager.find(OTP, {
         where: {
           user: { id: existingUser.id },
           used: false,
-          createdAt: LessThan(
-            new Date(Date.now() - (10 * 60 * 1000 + this.egyptTime)),
-          ),
+          createdAt: LessThan(this.tenMinutesAgo),
         },
       });
 
@@ -124,9 +111,7 @@ export class AuthService {
           where: {
             user: { id: existingUser.id },
             used: false,
-            createdAt: MoreThan(
-              new Date(Date.now() - (10 * 60 * 1000 + this.egyptTime)),
-            ),
+            createdAt: MoreThan(this.tenMinutesAgo),
           },
         });
 
@@ -135,6 +120,32 @@ export class AuthService {
     }
 
     return { id: existingUser.globalId };
+  }
+
+  async verifyOtp(verifyOtpDto: VerifyOtpDto) {
+    const user = await AppDataSource.manager.findOneBy(User, {
+      globalId: verifyOtpDto.id,
+    });
+
+    if (!user) throw new UnauthorizedException('Unkown user');
+    console.log(user.globalId);
+
+    const isValidOtp = await AppDataSource.manager.findOne(OTP, {
+      where: {
+        user: { id: user.id },
+        value: verifyOtpDto.otp,
+        used: false,
+        createdAt: MoreThan(this.tenMinutesAgo),
+      },
+    });
+    console.log(isValidOtp);
+    if (!isValidOtp) throw new BadRequestException('Invalid otp');
+
+    await AppDataSource.manager.update(OTP, isValidOtp.id, {
+      used: true,
+    });
+
+    return await this.generateAccessCredentials(user);
   }
 
   private async generateOtp(user: User) {
@@ -176,5 +187,28 @@ export class AuthService {
     });
 
     return refreshToken;
+  }
+
+  private async generateAccessCredentials(user: User) {
+    const payload = new JwtPayload();
+    payload.email = user.email;
+    payload.id = user.id;
+    payload.mobileNumber = user.mobileNumber;
+    payload.role = user.role;
+
+    const accessToken = await this.generateAccessToken(payload);
+    const refreshToken = await this.generateRefreshToken(payload);
+
+    return {
+      accessToken,
+      refreshToken,
+      user: {
+        id: user.globalId,
+        name: user.name,
+        mobileNumber: user.mobileNumber,
+        email: user.email,
+        role: user.role,
+      },
+    };
   }
 }
