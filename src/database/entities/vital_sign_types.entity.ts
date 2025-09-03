@@ -5,42 +5,60 @@ import {
   ManyToOne,
   CreateDateColumn,
   UpdateDateColumn,
+  Generated,
 } from 'typeorm';
 import { VitalSign } from './vital_sign.entity';
-
-enum VitalSignsTypes {
-  SYSTOLIC_PRESSURE = 'SYSTOLIC_PRESSURE',
-  DIASTOLIC_PRESSURE = 'DIASTOLIC_PRESSURE',
-  BLOOD_GLUCOSE = 'BLOOD_GLUCOSE',
-  HEIGHT = 'HEIGHT',
-  WEIGHT = 'WEIGHT',
-  HEART_RATE = 'HEART_RATE',
-  AGE = 'AGE',
-}
+import { VitalSignsTypes } from '../../constants/enums';
+import {
+  IsEnum,
+  IsString,
+  IsNotEmpty,
+  IsDate,
+  IsInt,
+  IsPositive,
+  IsUUID,
+  IsNumber,
+} from 'class-validator';
 
 @Entity('vital_sign_types')
 export class VitalSignType {
   @PrimaryGeneratedColumn()
+  @IsInt()
+  @IsPositive()
   id: number;
 
   @Column({ unique: true })
+  @Generated('uuid')
+  @IsString()
+  @IsUUID()
   globalId: string;
 
   @Column({ type: 'enum', enum: VitalSignsTypes })
+  @IsEnum(VitalSignsTypes)
   type: VitalSignsTypes;
 
   @Column('float')
+  @IsNumber()
+  @IsPositive()
+  @IsNotEmpty()
   minValue: number;
 
   @Column('float')
+  @IsNumber()
+  @IsPositive()
+  @IsNotEmpty()
   maxValue: number;
 
   @ManyToOne(() => VitalSign, (vs) => vs.vitalSignType)
   vitalSign: VitalSign;
 
   @CreateDateColumn()
+  @IsDate()
+  @IsNotEmpty()
   createdAt: Date;
 
   @UpdateDateColumn()
+  @IsDate()
+  @IsNotEmpty()
   updatedAt: Date;
 }

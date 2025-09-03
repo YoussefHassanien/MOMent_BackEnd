@@ -13,6 +13,15 @@ export const AppDataSource = new DataSource({
     rejectUnauthorized: false,
   },
   entities: [User, OTP, Patient, VitalSign, VitalSignType],
-  migrations: ['src/database/migrations/*.ts'],
+  migrations: ['migrations/*.ts'],
   synchronize: false,
+  logging: true,
 });
+
+AppDataSource.initialize()
+  .then(() => {
+    console.log('Database connection successeded');
+  })
+  .catch((error) => {
+    console.log('Database connection failed', error);
+  });
