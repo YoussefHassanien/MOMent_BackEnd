@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  GoneException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -135,11 +136,15 @@ export class AuthService {
         user: { id: user.id },
         value: verifyOtpDto.otp,
         used: false,
-        createdAt: MoreThan(this.tenMinutesAgo),
       },
     });
-    console.log(isValidOtp);
+
     if (!isValidOtp) throw new BadRequestException('Invalid otp');
+
+    const otpCreationDate = new Date(isValidOtp.createdAt);
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+
+    if (tenMinutesAgo > otpCreationDate) throw new GoneException('Expired otp');
 
     await AppDataSource.manager.update(OTP, isValidOtp.id, {
       used: true,
