@@ -19,9 +19,13 @@ export class AuthController {
   );
 
   @Post('patient')
-  async create(@Body() user: CreateUserDto) {
+  async create(
+    @Body() user: CreateUserDto,
+    @Res() res: Response,
+  ): Promise<Response> {
     const role: Role = Role.PATIENT;
-    await this.authService.create(user, role);
+    const { id } = await this.authService.create(user, role);
+    return res.status(201).json({ id });
   }
 
   @Post('login')
