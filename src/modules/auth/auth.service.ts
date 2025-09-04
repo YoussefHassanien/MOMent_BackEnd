@@ -64,6 +64,9 @@ export class AuthService {
     });
 
     await AppDataSource.manager.save(createdUser);
+
+    await this.sendOtpViaEmail(createdUser);
+
     return {
       id: createdUser.globalId,
     };
@@ -127,7 +130,7 @@ export class AuthService {
         },
       });
 
-      if (!validOtp) await this.generateOtp(existingUser);
+      if (!validOtp) await this.sendOtpViaEmail(existingUser);
     }
 
     return { id: existingUser.globalId };
@@ -188,10 +191,10 @@ export class AuthService {
       user: user,
     });
 
-    await this.generateOtp(user);
+    await this.sendOtpViaEmail(user);
   }
 
-  private async generateOtp(user: User) {
+  private async sendOtpViaEmail(user: User) {
     const otpValue = randomInt(100000, 1000000);
     const newOtp = AppDataSource.manager.create(OTP, {
       value: otpValue,
@@ -200,6 +203,17 @@ export class AuthService {
     });
 
     await AppDataSource.manager.save(newOtp);
+
+    const isOtpEmailSent = await this.emailService.sendOtpEmail(
+      user.email,
+      newOtp.value,
+      user.name,
+    );
+
+    if (!isOtpEmailSent) {
+      await AppDataSource.manager.delete(OTP, newOtp.id);
+      throw new BadRequestException('Could not send otp!');
+    }
   }
 
   private async generateAccessToken(payload: JwtPayload) {
