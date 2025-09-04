@@ -162,6 +162,19 @@ export class AuthService {
 
     if (!user) throw new UnauthorizedException('Unkwon user');
 
+    const recentOtp = await AppDataSource.manager.findOne(OTP, {
+      where: {
+        user: { id: user.id },
+        used: false,
+        createdAt: MoreThan(new Date(Date.now() - 1 * 60 * 1000)),
+      },
+    });
+
+    if (recentOtp)
+      throw new BadRequestException(
+        'Please wait one minute before requesting a new otp',
+      );
+
     await AppDataSource.manager.delete(OTP, {
       user: user,
     });
