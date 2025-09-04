@@ -18,10 +18,14 @@ import JwtPayload from '../../guards/auth/jwt.payload';
 import { JwtService } from '@nestjs/jwt';
 import VerifyOtpDto from './dtos/verify-otp.dto';
 import ResendOtpDto from './dtos/resend-otp.dto';
+import { EmailService } from '../../services/email.service';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly emailService: EmailService,
+  ) {}
   private readonly egyptTime: number = parseInt(process.env.EGYPT_TIME!);
   private readonly rounds: number = 12;
   private readonly tenMinutesAgo = new Date(
@@ -49,7 +53,7 @@ export class AuthService {
       this.rounds,
     );
 
-    await AppDataSource.manager.insert(User, {
+    const createdUser = AppDataSource.manager.create(User, {
       globalId: randomUUID(),
       email: user.email,
       mobileNumber: user.mobileNumber,
@@ -58,6 +62,11 @@ export class AuthService {
       role: role,
       language: user.language,
     });
+
+    await AppDataSource.manager.save(createdUser);
+    return {
+      id: createdUser.globalId,
+    };
   }
 
   async login(userLoginDto: UserLoginDto) {
