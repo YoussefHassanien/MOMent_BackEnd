@@ -5,17 +5,19 @@ import helmet from 'helmet';
 import * as cookieParser from 'cookie-parser';
 import * as morgan from 'morgan';
 import { VersioningType, ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.setGlobalPrefix('api');
+  const configService = app.get(ConfigService);
+  app.setGlobalPrefix(configService.getOrThrow<string>('globalPrefix'));
   app.enableVersioning({
     type: VersioningType.URI,
-    defaultVersion: process.env.VERSION,
+    defaultVersion: configService.getOrThrow<string>('version'),
   });
   app.use(helmet());
-  app.use(cookieParser(process.env.COOKIES_SECRET));
-  if (process.env.ENVIRONMENT === 'dev') {
+  app.use(cookieParser(configService.getOrThrow<string>('cookiesSecret')));
+  if (configService.getOrThrow<string>('environment') === 'dev') {
     app.enableCors();
     app.use(morgan('dev'));
     const config = new DocumentBuilder()
@@ -29,21 +31,26 @@ async function bootstrap() {
       .build();
     const documentFactory = () => SwaggerModule.createDocument(app, config);
     SwaggerModule.setup(
-      `api/v${process.env.VERSION}/docs`,
+      `${configService.getOrThrow<string>('globalPrefix')}/v${configService.getOrThrow<string>('version')}/docs`,
       app,
       documentFactory,
     );
   }
-  app.useGlobalPipes(new ValidationPipe({ transform: true }));
-  await app.listen(process.env.SERVER_PORT ?? 3000);
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+      forbidNonWhitelisted: true,
+    }),
+  );
+  await app.listen(configService.getOrThrow<number>('port') ?? 3000);
 }
 bootstrap()
-  .then(() =>
+  .then(() => {
     console.log(
-      `Server started at: http://localhost:${process.env.SERVER_PORT ?? 3000}/api/v${process.env.VERSION}`,
-      `\nServer docs at: http://localhost:${process.env.SERVER_PORT ?? 3000}/api/v1/docs`,
-    ),
-  )
+      `Server started at: http://localhost:${process.env.PORT ?? 3000}/${process.env.GLOBAL_PREFIX}/v${process.env.VERSION}`,
+      `\nServer docs at: http://localhost:${process.env.PORT ?? 3000}/${process.env.GLOBAL_PREFIX}/v${process.env.VERSION}/docs`,
+    );
+  })
   .catch((error) => {
     console.log('Server failed to start', error);
   });

@@ -13,19 +13,18 @@ export class EmailService {
 
   private async createTransporter() {
     this.transporter = nodemailer.createTransport({
-      host: this.configService.get<string>('SMTP_HOST'),
-      port: this.configService.get<number>('SMTP_PORT'),
-      secure: this.configService.get<string>('SMTP_SECURE') === 'true',
+      host: this.configService.getOrThrow<string>('smtpHost'),
+      port: this.configService.getOrThrow<number>('smtpPort'),
+      secure: this.configService.getOrThrow<string>('smtpSecure') === 'true',
       auth: {
-        user: this.configService.get<string>('SMTP_USER'),
-        pass: this.configService.get<string>('SMTP_PASS'),
+        user: this.configService.getOrThrow<string>('smtpUser'),
+        pass: this.configService.getOrThrow<string>('smtpPass'),
       },
     });
 
     // Verify connection configuration
     try {
       await this.transporter.verify();
-      this.logger.log('SMTP server connection verified successfully');
     } catch (error) {
       this.logger.error('SMTP server connection failed:', error);
     }
@@ -38,19 +37,15 @@ export class EmailService {
   ): Promise<boolean> {
     try {
       const mailOptions = {
-        from: `"MOMent App" <${this.configService.get<string>('SMTP_USER')}>`,
+        from: `"MOMent App" <${this.configService.getOrThrow<string>('SMTP_USER')}>`,
         to: email,
         subject: 'Your OTP Code - MOMent Verification',
         html: this.generateOtpEmailTemplate(userName, otp),
         text: `Hello ${userName}, Your OTP code for MOMent is: ${otp}. This code will expire in 10 minutes.`,
       };
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const result = await this.transporter.sendMail(mailOptions);
-      this.logger.log(
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        `OTP email sent successfully to ${email}. MessageId: ${result.messageId}`,
-      );
+      await this.transporter.sendMail(mailOptions);
+
       return true;
     } catch (error) {
       this.logger.error(`Failed to send OTP email to ${email}:`, error);

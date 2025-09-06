@@ -10,7 +10,7 @@ import {
   Generated,
 } from 'typeorm';
 import { User } from './user.entity';
-import { VitalSign } from './vital_sign.entity';
+import { VitalSign } from './vitalSign.entity';
 import {
   IsString,
   IsNotEmpty,
@@ -18,9 +18,10 @@ import {
   IsInt,
   IsPositive,
   IsUUID,
+  IsOptional,
 } from 'class-validator';
 
-@Entity('patients')
+@Entity('Patients')
 export class Patient {
   @PrimaryGeneratedColumn()
   @IsInt()
@@ -33,9 +34,9 @@ export class Patient {
   @IsUUID()
   globalId: string;
 
-  @Column()
+  @Column({ type: 'date', nullable: true })
+  @IsOptional()
   @IsDate()
-  @IsNotEmpty()
   dateOfBirth: Date;
 
   @CreateDateColumn()
@@ -49,8 +50,13 @@ export class Patient {
   updatedAt: Date;
 
   @OneToOne(() => User, (user) => user.patient)
-  @JoinColumn()
+  @JoinColumn({ name: 'userId' })
   user: User;
+
+  @Column({ unique: true })
+  @IsInt()
+  @IsPositive()
+  userId: number;
 
   @OneToMany(() => VitalSign, (vs) => vs.patient)
   vitals: VitalSign[];

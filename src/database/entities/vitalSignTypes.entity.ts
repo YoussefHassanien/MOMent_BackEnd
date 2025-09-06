@@ -2,15 +2,15 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  ManyToOne,
   OneToMany,
   CreateDateColumn,
   UpdateDateColumn,
   Generated,
 } from 'typeorm';
-import { Patient } from './patient.entity';
-import { VitalSignType } from './vital_sign_types.entity';
+import { VitalSign } from './vitalSign.entity';
+import { VitalSignsTypes } from '../../constants/enums';
 import {
+  IsEnum,
   IsString,
   IsNotEmpty,
   IsDate,
@@ -20,8 +20,8 @@ import {
   IsNumber,
 } from 'class-validator';
 
-@Entity('vital_signs')
-export class VitalSign {
+@Entity('Vital-Sign-Types')
+export class VitalSignType {
   @PrimaryGeneratedColumn()
   @IsInt()
   @IsPositive()
@@ -33,17 +33,24 @@ export class VitalSign {
   @IsUUID()
   globalId: string;
 
-  @OneToMany(() => VitalSignType, (vst) => vst.vitalSign)
-  vitalSignType: VitalSignType[];
-
-  @ManyToOne(() => Patient, (patient) => patient.vitals)
-  patient: Patient;
+  @Column({ type: 'enum', enum: VitalSignsTypes })
+  @IsEnum(VitalSignsTypes)
+  type: VitalSignsTypes;
 
   @Column('float')
   @IsNumber()
   @IsPositive()
   @IsNotEmpty()
-  value: number;
+  minValue: number;
+
+  @Column('float')
+  @IsNumber()
+  @IsPositive()
+  @IsNotEmpty()
+  maxValue: number;
+
+  @OneToMany(() => VitalSign, (vitalSign) => vitalSign.vitalSignType)
+  vitalSigns: VitalSign[];
 
   @CreateDateColumn()
   @IsDate()

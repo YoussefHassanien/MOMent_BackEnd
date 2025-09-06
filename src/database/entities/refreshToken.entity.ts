@@ -14,10 +14,11 @@ import {
   IsInt,
   IsPositive,
   IsBoolean,
+  IsString,
 } from 'class-validator';
 
-@Entity('OTPs')
-export class OTP {
+@Entity('Refresh-Tokens')
+export class RefreshToken {
   @PrimaryGeneratedColumn()
   @IsInt()
   @IsPositive()
@@ -25,14 +26,18 @@ export class OTP {
 
   @Column()
   @IsNotEmpty()
+  @IsString()
+  @IsPositive()
+  token: string;
+
+  @OneToOne(() => User, (user) => user.refreshToken)
+  @JoinColumn({ name: 'userId' })
+  user: User;
+
+  @Column({ unique: true })
   @IsInt()
   @IsPositive()
-  value: number;
-
-  @Column({ default: false })
-  @IsNotEmpty()
-  @IsBoolean()
-  used: boolean;
+  userId: number;
 
   @CreateDateColumn()
   @IsDate()
@@ -43,13 +48,4 @@ export class OTP {
   @IsDate()
   @IsNotEmpty()
   updatedAt: Date;
-
-  @OneToOne(() => User, (user) => user.otp)
-  @JoinColumn({ name: 'userId' })
-  user: User;
-
-  @Column({ unique: true })
-  @IsInt()
-  @IsPositive()
-  userId: number;
 }

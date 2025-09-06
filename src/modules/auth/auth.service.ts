@@ -4,48 +4,81 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 import CreateUserDto from './dtos/create-user.dto';
 import UserLoginDto from './dtos/user-login.dto';
 import { Role } from '../../constants/enums';
 import * as bcrypt from 'bcrypt';
-import { User } from '../../database/entities/user.entity';
-import { OTP } from '../../database/entities/otp.entity';
+import { User, OTP, Patient, RefreshToken } from '../../database/index';
 import { randomUUID } from 'crypto';
-import { AppDataSource } from '../../database/data-source';
 import { randomInt } from 'crypto';
-import { LessThan, MoreThan } from 'typeorm';
-import JwtPayload from '../../guards/auth/jwt.payload';
+import { LessThan, MoreThan, Repository } from 'typeorm';
+import JwtPayload from './jwt.payload';
 import { JwtService } from '@nestjs/jwt';
 import VerifyOtpDto from './dtos/verify-otp.dto';
 import ResendOtpDto from './dtos/resend-otp.dto';
-import { EmailService } from '../../services/email.service';
+import { EmailService } from '../../services/email/email.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
+  private readonly egyptTime: number;
+  private readonly rounds: number;
+  private readonly tenMinutesAgo: Date;
+  private readonly accessTokenSecret: string;
+  private readonly refreshTokenSecret: string;
+  private readonly accessTokenExpirationTime: string;
+  private readonly refreshTokenExpirationTime: string;
+  private readonly issuer: string;
+  private readonly audience: string;
   constructor(
     private readonly jwtService: JwtService,
     private readonly emailService: EmailService,
-  ) {}
-  private readonly egyptTime: number = parseInt(process.env.EGYPT_TIME!);
-  private readonly rounds: number = 12;
-  private readonly tenMinutesAgo = new Date(
-    Date.now() - (10 * 60 * 1000 + this.egyptTime),
-  );
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+    @InjectRepository(OTP)
+    private readonly otpRepository: Repository<OTP>,
+    @InjectRepository(Patient)
+    private readonly patientRepository: Repository<Patient>,
+    @InjectRepository(RefreshToken)
+    private readonly refreshTokenRepository: Repository<RefreshToken>,
+    private readonly configService: ConfigService,
+  ) {
+    this.egyptTime = this.configService.getOrThrow<number>('egyptTime');
+    this.rounds = this.configService.getOrThrow<number>('rounds');
+    this.tenMinutesAgo = new Date(
+      Date.now() - (10 * 60 * 1000 + this.egyptTime),
+    );
+    this.accessTokenSecret =
+      this.configService.getOrThrow<string>('accessTokenSecret');
+    this.refreshTokenSecret =
+      this.configService.getOrThrow<string>('refreshTokenSecret');
+    this.accessTokenExpirationTime = this.configService.getOrThrow<string>(
+      'accessTokenExpirationTime',
+    );
+    this.refreshTokenExpirationTime = this.configService.getOrThrow<string>(
+      'refreshTokenExpirtationTime',
+    );
+    this.issuer = this.configService.getOrThrow<string>('issuer');
+    this.audience = this.configService.getOrThrow<string>('audience');
+  }
   async create(user: CreateUserDto, role: Role) {
     if (user.password !== user.confirmPassword) {
       throw new BadRequestException('Passwords did not match');
     }
 
-    const existingUser = await AppDataSource.manager.findOne(User, {
+    const existingUser = await this.userRepository.findOne({
       where: [{ email: user.email }, { mobileNumber: user.mobileNumber }],
     });
 
     if (existingUser?.email === user.email) {
-      throw new BadRequestException('This email already exists');
+      throw new BadRequestException({ message: 'This email already exists' });
     }
 
     if (existingUser?.mobileNumber === user.mobileNumber) {
-      throw new BadRequestException('This mobile number already exists');
+      throw new BadRequestException({
+        message: 'This mobile number already exists',
+      });
     }
 
     const hashedPassword: string = await bcrypt.hash(
@@ -53,7 +86,7 @@ export class AuthService {
       this.rounds,
     );
 
-    const createdUser = AppDataSource.manager.create(User, {
+    const createdUser = this.userRepository.create({
       globalId: randomUUID(),
       email: user.email,
       mobileNumber: user.mobileNumber,
@@ -63,9 +96,23 @@ export class AuthService {
       language: user.language,
     });
 
-    await AppDataSource.manager.save(createdUser);
+    await this.userRepository.save(createdUser);
 
-    await this.sendOtpViaEmail(createdUser);
+    const createdPatient = this.patientRepository.create({
+      globalId: randomUUID(),
+      userId: createdUser.id,
+      user: createdUser,
+    });
+
+    await this.patientRepository.save(createdPatient);
+
+    const otp = await this.generateOtp(createdUser.id);
+
+    await this.emailService.sendOtpEmail(
+      createdUser.email,
+      otp,
+      createdUser.name,
+    );
 
     return {
       id: createdUser.globalId,
@@ -73,7 +120,7 @@ export class AuthService {
   }
 
   async login(userLoginDto: UserLoginDto) {
-    const existingUser = await AppDataSource.manager.findOne(User, {
+    const existingUser = await this.userRepository.findOne({
       where: [
         { email: userLoginDto.emailOrMobileNumber },
         { mobileNumber: userLoginDto.emailOrMobileNumber },
@@ -91,76 +138,51 @@ export class AuthService {
     if (!isCorrectPassword)
       throw new BadRequestException('Invalid email/mobile number or password');
 
-    const existingOtp = await AppDataSource.manager.findOne(OTP, {
-      where: {
-        user: { id: existingUser.id },
-        used: true,
-      },
+    const existingOtp = await this.otpRepository.findOneBy({
+      userId: existingUser.id,
+      used: true,
     });
 
     if (existingOtp) {
       return await this.generateAccessCredentials(existingUser);
     } else {
-      const expiredOtps = await AppDataSource.manager.find(OTP, {
-        where: {
-          user: { id: existingUser.id },
-          used: false,
-          createdAt: LessThan(this.tenMinutesAgo),
-        },
+      await this.otpRepository.delete({
+        userId: existingUser.id,
+        used: false,
       });
 
-      if (expiredOtps.length) {
-        expiredOtps.forEach((otp, i) => {
-          AppDataSource.manager
-            .delete(OTP, otp.id)
-            .then(() => {
-              console.log(`Otp number ${i + 1} is deleted successfully`);
-            })
-            .catch((error) => {
-              console.log(`Error deleting expired otp number ${i + 1}`, error);
-            });
-        });
-      }
-
-      const validOtp = await AppDataSource.manager.findOne(OTP, {
-        where: {
-          user: { id: existingUser.id },
-          used: false,
-          createdAt: MoreThan(this.tenMinutesAgo),
-        },
-      });
-
-      if (!validOtp) await this.sendOtpViaEmail(existingUser);
+      const otp = await this.generateOtp(existingUser.id);
+      await this.emailService.sendOtpEmail(
+        existingUser.email,
+        otp,
+        existingUser.name,
+      );
     }
 
     return { id: existingUser.globalId };
   }
 
   async verifyOtp(verifyOtpDto: VerifyOtpDto) {
-    const user = await AppDataSource.manager.findOneBy(User, {
+    const user = await this.userRepository.findOneBy({
       globalId: verifyOtpDto.id,
     });
 
-    if (!user) throw new UnauthorizedException('Unkwon user');
+    if (!user) throw new UnauthorizedException({ message: 'Unkwon user' });
 
-    const isValidOtp = await AppDataSource.manager.findOne(OTP, {
-      where: {
-        user: { id: user.id },
-        value: verifyOtpDto.otp,
-        used: false,
-      },
+    const isValidOtp = await this.otpRepository.findOneBy({
+      userId: user.id,
+      value: verifyOtpDto.otp,
+      used: false,
     });
 
-    if (!isValidOtp) throw new BadRequestException('Invalid otp');
+    if (!isValidOtp) throw new BadRequestException({ message: 'Invalid otp' });
 
-    const otpCreationDate = new Date(
-      isValidOtp.createdAt.getTime() + this.egyptTime,
-    );
-    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+    const otpCreationDate = new Date(isValidOtp.createdAt.getTime());
 
-    if (tenMinutesAgo > otpCreationDate) throw new GoneException('Expired otp');
+    if (this.tenMinutesAgo > otpCreationDate)
+      throw new GoneException({ message: 'Expired otp' });
 
-    await AppDataSource.manager.update(OTP, isValidOtp.id, {
+    await this.otpRepository.update(isValidOtp.id, {
       used: true,
     });
 
@@ -168,55 +190,58 @@ export class AuthService {
   }
 
   async resendOtp(resendOtpDto: ResendOtpDto) {
-    const user = await AppDataSource.manager.findOneBy(User, {
+    const user = await this.userRepository.findOneBy({
       globalId: resendOtpDto.id,
     });
 
-    if (!user) throw new UnauthorizedException('Unkwon user');
+    if (!user) throw new UnauthorizedException({ message: 'Unkwon user' });
 
-    const recentOtp = await AppDataSource.manager.findOne(OTP, {
-      where: {
-        user: { id: user.id },
-        used: false,
-        createdAt: MoreThan(new Date(Date.now() - 1 * 60 * 1000)),
-      },
+    const recentOtp = await this.otpRepository.findOneBy({
+      userId: user.id,
+      used: false,
+      createdAt: MoreThan(
+        new Date(Date.now() - (1 * 60 * 1000 + this.egyptTime)),
+      ),
     });
 
     if (recentOtp)
-      throw new BadRequestException(
-        'Please wait one minute before requesting a new otp',
-      );
+      throw new BadRequestException({
+        message: 'Please wait one minute before requesting a new otp',
+      });
 
-    await AppDataSource.manager.delete(OTP, {
-      user: user,
+    await this.otpRepository.delete({
+      userId: user.id,
     });
 
-    await this.sendOtpViaEmail(user);
+    const otp = await this.generateOtp(user.id);
+
+    await this.emailService.sendOtpEmail(user.email, otp, user.name);
   }
 
-  private async sendOtpViaEmail(user: User) {
-    const otpValue = randomInt(100000, 1000000);
-    const newOtp = AppDataSource.manager.create(OTP, {
-      value: otpValue,
-      used: false,
-      user: user,
+  async logout(userId: number) {
+    await this.otpRepository.delete({
+      userId: userId,
     });
+    await this.refreshTokenRepository.delete({
+      userId: userId,
+    });
+  }
 
-    await AppDataSource.manager.save(newOtp);
-
-    const isOtpEmailSent = await this.emailService.sendOtpEmail(
-      user.email,
-      newOtp.value,
-      user.name,
+  private async generateOtp(userId: number) {
+    const otpValue = randomInt(100000, 1000000);
+    await this.otpRepository.upsert(
+      {
+        value: otpValue,
+        used: false,
+        userId: userId,
+      },
+      ['userId'],
     );
 
-    if (!isOtpEmailSent) {
-      await AppDataSource.manager.delete(OTP, newOtp.id);
-      throw new BadRequestException('Could not send otp!');
-    }
+    return otpValue;
   }
 
-  private async generateAccessToken(payload: JwtPayload) {
+  async generateAccessToken(payload: JwtPayload) {
     const tokenPayload = {
       sub: payload.id,
       email: payload.email,
@@ -225,36 +250,48 @@ export class AuthService {
     };
 
     const accessToken = await this.jwtService.signAsync(tokenPayload, {
-      expiresIn: process.env.ACCESS_TOKEN_EXPIRATION_TIME,
+      secret: this.accessTokenSecret,
+      expiresIn: this.accessTokenExpirationTime,
+      issuer: this.issuer,
+      audience: this.audience,
     });
 
     return accessToken;
   }
 
-  private async generateRefreshToken(payload: JwtPayload) {
+  private async generateRefreshToken(userId: number) {
     const tokenPayload = {
-      sub: payload.id,
-      email: payload.email,
-      mobileNumber: payload.mobileNumber,
-      role: payload.role,
+      sub: userId,
     };
 
     const refreshToken = await this.jwtService.signAsync(tokenPayload, {
-      expiresIn: process.env.REFRESH_TOKEN_EXPIRATION_TIME,
+      secret: this.refreshTokenSecret,
+      expiresIn: this.refreshTokenExpirationTime,
+      issuer: this.issuer,
+      audience: this.audience,
     });
+
+    await this.refreshTokenRepository.upsert(
+      {
+        userId: userId,
+        token: refreshToken,
+      },
+      ['userId'],
+    );
 
     return refreshToken;
   }
 
   private async generateAccessCredentials(user: User) {
-    const payload = new JwtPayload();
-    payload.email = user.email;
-    payload.id = user.id;
-    payload.mobileNumber = user.mobileNumber;
-    payload.role = user.role;
+    const payload = new JwtPayload(
+      user.id,
+      user.email,
+      user.mobileNumber,
+      user.role,
+    );
 
     const accessToken = await this.generateAccessToken(payload);
-    const refreshToken = await this.generateRefreshToken(payload);
+    const refreshToken = await this.generateRefreshToken(payload.id);
 
     return {
       accessToken,
@@ -267,5 +304,20 @@ export class AuthService {
         role: user.role,
       },
     };
+  }
+
+  async validateRefreshToken(token: string, userId: number): Promise<boolean> {
+    const refreshToken = await this.refreshTokenRepository.findOneBy({
+      userId: userId,
+      token: token,
+    });
+
+    return refreshToken ? true : false;
+  }
+
+  async findUserById(userId: number) {
+    return await this.userRepository.findOneBy({
+      id: userId,
+    });
   }
 }

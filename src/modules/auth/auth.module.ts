@@ -2,17 +2,22 @@ import { Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtModule } from '@nestjs/jwt';
-import { EmailService } from '../../services/email.service';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { User, OTP, Patient, RefreshToken } from '../../database/index';
+import { EmailModule } from '../../services/email/email.module';
+import { AuthenticationGuard } from './authentication.guard';
+import { AuthorizationGuard } from './authorization.guard';
 
 @Module({
   imports: [
     JwtModule.register({
       global: true,
-      secret: process.env.ACCESS_TOKEN_SECRET,
     }),
+    TypeOrmModule.forFeature([User, OTP, Patient, RefreshToken]),
+    EmailModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, EmailService],
-  exports: [AuthService, EmailService],
+  providers: [AuthService, AuthenticationGuard, AuthorizationGuard],
+  exports: [AuthenticationGuard, AuthorizationGuard],
 })
 export class AuthModule {}

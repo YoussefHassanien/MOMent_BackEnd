@@ -23,8 +23,9 @@ import {
   IsPositive,
   IsUUID,
 } from 'class-validator';
+import { RefreshToken } from './refreshToken.entity';
 
-@Entity('users')
+@Entity('Users')
 export class User {
   @PrimaryGeneratedColumn()
   @IsInt()
@@ -74,9 +75,12 @@ export class User {
   @IsNotEmpty()
   updatedAt: Date;
 
-  @OneToMany(() => OTP, (otp) => otp.user)
-  otps: OTP[];
+  @OneToOne(() => OTP, (otp) => otp.user)
+  otp: OTP;
 
   @OneToOne(() => Patient, (patient) => patient.user)
   patient: Patient;
+
+  @OneToOne(() => RefreshToken, (refreshToken) => refreshToken.user)
+  refreshToken: RefreshToken;
 }

@@ -6,11 +6,11 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Generated,
+  JoinColumn,
 } from 'typeorm';
-import { VitalSign } from './vital_sign.entity';
-import { VitalSignsTypes } from '../../constants/enums';
+import { Patient } from './patient.entity';
+import { VitalSignType } from './vitalSignTypes.entity';
 import {
-  IsEnum,
   IsString,
   IsNotEmpty,
   IsDate,
@@ -20,8 +20,8 @@ import {
   IsNumber,
 } from 'class-validator';
 
-@Entity('vital_sign_types')
-export class VitalSignType {
+@Entity('Vital-Signs')
+export class VitalSign {
   @PrimaryGeneratedColumn()
   @IsInt()
   @IsPositive()
@@ -33,24 +33,29 @@ export class VitalSignType {
   @IsUUID()
   globalId: string;
 
-  @Column({ type: 'enum', enum: VitalSignsTypes })
-  @IsEnum(VitalSignsTypes)
-  type: VitalSignsTypes;
+  @Column()
+  @IsInt()
+  @IsPositive()
+  typeId: number;
+
+  @ManyToOne(() => VitalSignType, (vitalSignType) => vitalSignType.vitalSigns)
+  @JoinColumn({ name: 'typeId' })
+  vitalSignType: VitalSignType;
+
+  @ManyToOne(() => Patient, (patient) => patient.vitals)
+  @JoinColumn({ name: 'patientId' })
+  patient: Patient;
+
+  @Column()
+  @IsInt()
+  @IsPositive()
+  patientId: number;
 
   @Column('float')
   @IsNumber()
   @IsPositive()
   @IsNotEmpty()
-  minValue: number;
-
-  @Column('float')
-  @IsNumber()
-  @IsPositive()
-  @IsNotEmpty()
-  maxValue: number;
-
-  @ManyToOne(() => VitalSign, (vs) => vs.vitalSignType)
-  vitalSign: VitalSign;
+  value: number;
 
   @CreateDateColumn()
   @IsDate()
