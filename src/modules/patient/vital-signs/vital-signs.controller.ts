@@ -1,34 +1,34 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
-  UseGuards,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
   Req,
-  Res,
+  UseGuards,
 } from '@nestjs/common';
-import { Response, Request } from 'express';
-import { VitalSignsService } from './vital-signs.service';
-import { CreateVitalSignDto } from './dto/create-vital-sign.dto';
-import { UpdateVitalSignDto } from './dto/update-vital-sign.dto';
-import JwtPayload from 'src/modules/auth/jwt.payload';
+import { Request } from 'express';
+import { Role } from 'src/constants/enums';
 import {
   AuthenticationGuard,
   AuthorizationGuard,
 } from 'src/modules/auth/auth.guard';
-import { Role } from 'src/constants/enums';
+import JwtPayload from 'src/modules/auth/jwt.payload';
 import { Roles } from 'src/modules/auth/roles.decorator';
+import { CreateVitalSignDto } from './dto/create-vital-sign.dto';
+import { UpdateVitalSignDto } from './dto/update-vital-sign.dto';
+import { VitalSignsService } from './vital-signs.service';
 
 @Controller('patient/vital-signs')
+@UseGuards(AuthenticationGuard, AuthorizationGuard)
+@Roles(Role.PATIENT)
 export class VitalSignsController {
   constructor(private readonly vitalSignsService: VitalSignsService) {}
 
   @Post()
-  @UseGuards(AuthenticationGuard, AuthorizationGuard)
-  @Roles(Role.PATIENT)
   async create(
     @Req() req: Request,
     @Body() createVitalSignDto: CreateVitalSignDto,
@@ -43,20 +43,20 @@ export class VitalSignsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.vitalSignsService.findOne(+id);
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
+    return this.vitalSignsService.findOne(id);
   }
 
   @Patch(':id')
   update(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() updateVitalSignDto: UpdateVitalSignDto,
   ) {
-    return this.vitalSignsService.update(+id, updateVitalSignDto);
+    return this.vitalSignsService.update(id, updateVitalSignDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.vitalSignsService.remove(+id);
+  remove(@Param('id', ParseUUIDPipe) id: string) {
+    return this.vitalSignsService.remove(id);
   }
 }

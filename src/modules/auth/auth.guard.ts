@@ -1,16 +1,16 @@
 import {
-  Injectable,
   CanActivate,
   ExecutionContext,
+  Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { Request, Response } from 'express';
+import { Role } from '../../constants/enums';
 import { AuthService } from './auth.service';
 import JwtPayload from './jwt.payload';
-import { Role } from '../../constants/enums';
-import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from './roles.decorator';
 
 interface JwtError {

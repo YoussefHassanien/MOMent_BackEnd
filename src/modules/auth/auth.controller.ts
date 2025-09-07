@@ -1,23 +1,23 @@
 import {
   Body,
   Controller,
-  Post,
-  Res,
-  Put,
   Delete,
+  Post,
+  Put,
   Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { Role } from '../../constants/enums';
-import CreateUserDto from './dtos/create-user.dto';
-import { Throttle, minutes } from '@nestjs/throttler';
-import UserLoginDto from './dtos/user-login.dto';
-import { Response, Request } from 'express';
-import VerifyOtpDto from './dtos/verify-otp.dto';
-import ResendOtpDto from './dtos/resend-otp.dto';
 import { ConfigService } from '@nestjs/config';
+import { Throttle, minutes } from '@nestjs/throttler';
+import { Request, Response } from 'express';
+import { Role } from '../../constants/enums';
 import { AuthenticationGuard } from './auth.guard';
+import { AuthService } from './auth.service';
+import CreateUserDto from './dtos/create-user.dto';
+import ResendOtpDto from './dtos/resend-otp.dto';
+import UserLoginDto from './dtos/user-login.dto';
+import VerifyOtpDto from './dtos/verify-otp.dto';
 import JwtPayload from './jwt.payload';
 
 @Throttle({

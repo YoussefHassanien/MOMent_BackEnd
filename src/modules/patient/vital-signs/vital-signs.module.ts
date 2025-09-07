@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { VitalSignsService } from './vital-signs.service';
-import { VitalSignsController } from './vital-signs.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { VitalSign, VitalSignType, Patient } from '../../../database/index';
+import { Patient, VitalSign, VitalSignType } from '../../../database/index';
+import { VitalSignsController } from './vital-signs.controller';
+import { VitalSignsService } from './vital-signs.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([VitalSign, VitalSignType, Patient])],

@@ -1,19 +1,19 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
   UseGuards,
 } from '@nestjs/common';
-import { VitalSignTypeService } from './vital-sign-type.service';
-import { CreateVitalSignTypeDto } from './dto/create-vital-sign-type.dto';
-import { UpdateVitalSignTypeDto } from './dto/update-vital-sign-type.dto';
+import { Role } from '../../../constants/enums';
 import { AuthenticationGuard, AuthorizationGuard } from '../../auth/auth.guard';
 import { Roles } from '../../auth/roles.decorator';
-import { Role } from '../../../constants/enums';
+import { CreateVitalSignTypeDto } from './dto/create-vital-sign-type.dto';
+import { UpdateVitalSignTypeDto } from './dto/update-vital-sign-type.dto';
+import { VitalSignTypeService } from './vital-sign-type.service';
 
 @Controller('admin/vital-sign-type')
 export class VitalSignTypeController {

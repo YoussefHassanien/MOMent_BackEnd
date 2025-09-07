@@ -4,21 +4,20 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import CreateUserDto from './dtos/create-user.dto';
-import UserLoginDto from './dtos/user-login.dto';
-import { Role } from '../../constants/enums';
-import * as bcrypt from 'bcrypt';
-import { User, OTP, Patient, RefreshToken } from '../../database/index';
-import { randomUUID } from 'crypto';
-import { randomInt } from 'crypto';
-import { MoreThan, Repository } from 'typeorm';
-import JwtPayload from './jwt.payload';
-import { JwtService } from '@nestjs/jwt';
-import VerifyOtpDto from './dtos/verify-otp.dto';
-import ResendOtpDto from './dtos/resend-otp.dto';
-import { EmailService } from '../../services/email/email.service';
 import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
+import { InjectRepository } from '@nestjs/typeorm';
+import * as bcrypt from 'bcrypt';
+import { randomInt, randomUUID } from 'crypto';
+import { MoreThan, Repository } from 'typeorm';
+import { Role } from '../../constants/enums';
+import { OTP, Patient, RefreshToken, User } from '../../database/index';
+import { EmailService } from '../../services/email/email.service';
+import CreateUserDto from './dtos/create-user.dto';
+import ResendOtpDto from './dtos/resend-otp.dto';
+import UserLoginDto from './dtos/user-login.dto';
+import VerifyOtpDto from './dtos/verify-otp.dto';
+import JwtPayload from './jwt.payload';
 
 @Injectable()
 export class AuthService {

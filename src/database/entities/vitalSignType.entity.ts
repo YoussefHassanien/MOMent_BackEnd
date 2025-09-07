@@ -1,24 +1,24 @@
 import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  OneToMany,
-  CreateDateColumn,
-  UpdateDateColumn,
-  Generated,
-} from 'typeorm';
-import { VitalSign } from './vitalSign.entity';
-import { VitalSignsTypes, VitalSignUnits } from '../../constants/enums';
-import {
-  IsEnum,
-  IsString,
-  IsNotEmpty,
   IsDate,
+  IsEnum,
   IsInt,
-  IsPositive,
-  IsUUID,
+  IsNotEmpty,
   IsNumber,
+  IsPositive,
+  IsString,
+  IsUUID,
 } from 'class-validator';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  Generated,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { VitalSignsTypes, VitalSignUnits } from '../../constants/enums';
+import { VitalSign } from './vitalSign.entity';
 
 @Entity('Vital-Sign-Types')
 export class VitalSignType {

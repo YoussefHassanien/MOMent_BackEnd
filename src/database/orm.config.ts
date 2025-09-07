@@ -3,8 +3,8 @@ import {
   TypeOrmModuleAsyncOptions,
   TypeOrmModuleOptions,
 } from '@nestjs/typeorm';
-import { DataSource, DataSourceOptions } from 'typeorm';
 import 'dotenv/config';
+import { DataSource, DataSourceOptions } from 'typeorm';
 
 export const dataSourceAsyncOptions: TypeOrmModuleAsyncOptions = {
   imports: [ConfigModule],
