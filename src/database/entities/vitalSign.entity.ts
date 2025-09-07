@@ -9,7 +9,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { Patient } from './patient.entity';
-import { VitalSignType } from './vitalSignTypes.entity';
+import { VitalSignType } from './vitalSignType.entity';
 import {
   IsString,
   IsNotEmpty,

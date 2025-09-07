@@ -18,3 +18,12 @@ export enum VitalSignsTypes {
   HEART_RATE = 'HEART_RATE',
   AGE = 'AGE',
 }
+
+export enum VitalSignUnits {
+  MMHG = 'mmHg', // Blood pressure
+  MG_DL = 'mg/dL', // Blood glucose
+  CM = 'cm', // Height
+  KG = 'kg', // Weight
+  BPM = 'bpm', // Heart rate
+  YEARS = 'years', // Age
+}

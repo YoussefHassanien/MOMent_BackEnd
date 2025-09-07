@@ -10,6 +10,9 @@ import { DataSource } from 'typeorm';
 import { dataSourceAsyncOptions } from './database/orm.config';
 import config from './config/config';
 import { EmailModule } from './services/email/email.module';
+import { VitalSignsModule } from './modules/patient/vital-signs/vital-signs.module';
+import { LoggerMiddleware } from './middlewares/logger.middleware';
+import { VitalSignTypeModule } from './modules/admin/vital-sign-type/vital-sign-type.module';
 
 @Module({
   imports: [
@@ -28,6 +31,8 @@ import { EmailModule } from './services/email/email.module';
     ScheduleModule.forRoot(),
     EmailModule,
     AuthModule,
+    VitalSignsModule,
+    VitalSignTypeModule,
   ],
   controllers: [AppController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
@@ -41,7 +46,6 @@ export class AppModule implements NestModule {
   }
 
   configure(consumer: MiddlewareConsumer) {
-    // Add global middleware here if needed
-    // Example: consumer.apply(LoggerMiddleware).forRoutes('*');
+    consumer.apply(LoggerMiddleware).forRoutes('*');
   }
 }

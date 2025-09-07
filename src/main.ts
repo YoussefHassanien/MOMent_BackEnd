@@ -3,7 +3,6 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import helmet from 'helmet';
 import * as cookieParser from 'cookie-parser';
-import * as morgan from 'morgan';
 import { VersioningType, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
@@ -19,15 +18,20 @@ async function bootstrap() {
   app.use(cookieParser(configService.getOrThrow<string>('cookiesSecret')));
   if (configService.getOrThrow<string>('environment') === 'dev') {
     app.enableCors();
-    app.use(morgan('dev'));
     const config = new DocumentBuilder()
       .setTitle('MOMent Project APIs Documentation')
       .setDescription(
         'These APIs are made for MOMent project that mainly serve pregnant women',
       )
       .setVersion('1.0.0')
-      .addBearerAuth()
-      .addCookieAuth()
+      .addCookieAuth('accessToken', {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'accessToken',
+        description: 'JWT access token for authentication',
+        in: 'cookie',
+      })
       .build();
     const documentFactory = () => SwaggerModule.createDocument(app, config);
     SwaggerModule.setup(
