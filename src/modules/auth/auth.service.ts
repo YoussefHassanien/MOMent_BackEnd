@@ -12,7 +12,7 @@ import * as bcrypt from 'bcrypt';
 import { User, OTP, Patient, RefreshToken } from '../../database/index';
 import { randomUUID } from 'crypto';
 import { randomInt } from 'crypto';
-import { LessThan, MoreThan, Repository } from 'typeorm';
+import { MoreThan, Repository } from 'typeorm';
 import JwtPayload from './jwt.payload';
 import { JwtService } from '@nestjs/jwt';
 import VerifyOtpDto from './dtos/verify-otp.dto';
@@ -64,7 +64,7 @@ export class AuthService {
   }
   async create(user: CreateUserDto, role: Role) {
     if (user.password !== user.confirmPassword) {
-      throw new BadRequestException('Passwords did not match');
+      throw new BadRequestException({ message: 'Passwords did not match' });
     }
 
     const existingUser = await this.userRepository.findOne({
@@ -128,7 +128,9 @@ export class AuthService {
     });
 
     if (!existingUser)
-      throw new BadRequestException('Invalid email/mobile number or password');
+      throw new BadRequestException({
+        message: 'Invalid email/mobile number or password',
+      });
 
     const isCorrectPassword = await bcrypt.compare(
       userLoginDto.password,
@@ -136,7 +138,9 @@ export class AuthService {
     );
 
     if (!isCorrectPassword)
-      throw new BadRequestException('Invalid email/mobile number or password');
+      throw new BadRequestException({
+        message: 'Invalid email/mobile number or password',
+      });
 
     const existingOtp = await this.otpRepository.findOneBy({
       userId: existingUser.id,
@@ -312,7 +316,7 @@ export class AuthService {
       token: token,
     });
 
-    return refreshToken ? true : false;
+    return refreshToken !== null;
   }
 
   async findUserById(userId: number) {

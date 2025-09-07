@@ -17,10 +17,8 @@ import { Response, Request } from 'express';
 import VerifyOtpDto from './dtos/verify-otp.dto';
 import ResendOtpDto from './dtos/resend-otp.dto';
 import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
-import { AuthenticationGuard } from './authentication.guard';
-import { AuthorizationGuard } from './authorization.guard';
-import { Roles } from './roles.decorator';
+import { AuthenticationGuard } from './auth.guard';
+import JwtPayload from './jwt.payload';
 
 @Throttle({
   default: { ttl: minutes(1), limit: 10, blockDuration: minutes(1) },
@@ -38,16 +36,13 @@ export class AuthController {
   }
 
   @Post('patient')
-  async create(@Body() user: CreateUserDto): Promise<{ id: string }> {
+  async create(@Body() user: CreateUserDto) {
     const role: Role = Role.PATIENT;
     return await this.authService.create(user, role);
   }
 
   @Post('login')
-  async login(
-    @Body() userLoginDto: UserLoginDto,
-    @Res() res: Response,
-  ): Promise<Response> {
+  async login(@Body() userLoginDto: UserLoginDto, @Res() res: Response) {
     const result = await this.authService.login(userLoginDto);
 
     if ('id' in result) return res.status(201).json({ id: result.id });
@@ -58,10 +53,7 @@ export class AuthController {
   }
 
   @Post('verify-otp')
-  async verifyOtp(
-    @Body() verifyOtpDto: VerifyOtpDto,
-    @Res() res: Response,
-  ): Promise<Response> {
+  async verifyOtp(@Body() verifyOtpDto: VerifyOtpDto, @Res() res: Response) {
     const { accessToken, refreshToken, user } =
       await this.authService.verifyOtp(verifyOtpDto);
 
@@ -77,9 +69,10 @@ export class AuthController {
 
   @Delete('logout')
   @UseGuards(AuthenticationGuard)
-  async logout(@Req() req: Request, @Res() res: Response): Promise<Response> {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
-    await this.authService.logout(req.user.id);
+  async logout(@Req() req: Request, @Res() res: Response) {
+    const user = req.user as JwtPayload;
+
+    await this.authService.logout(user.id);
 
     const cookieOptions = {
       httpOnly: true,
@@ -97,7 +90,7 @@ export class AuthController {
     res: Response,
     accessToken: string,
     refreshToken: string,
-  ): void {
+  ) {
     const cookieOptions = {
       expires: new Date(Date.now() + this.cookiesExpirationTime),
       httpOnly: true,

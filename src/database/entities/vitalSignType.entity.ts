@@ -8,7 +8,7 @@ import {
   Generated,
 } from 'typeorm';
 import { VitalSign } from './vitalSign.entity';
-import { VitalSignsTypes } from '../../constants/enums';
+import { VitalSignsTypes, VitalSignUnits } from '../../constants/enums';
 import {
   IsEnum,
   IsString,
@@ -41,13 +41,29 @@ export class VitalSignType {
   @IsNumber()
   @IsPositive()
   @IsNotEmpty()
-  minValue: number;
+  minValidValue: number;
 
   @Column('float')
   @IsNumber()
   @IsPositive()
   @IsNotEmpty()
-  maxValue: number;
+  maxValidValue: number;
+
+  @Column('float')
+  @IsNumber()
+  @IsPositive()
+  @IsNotEmpty()
+  highValueAlert: number;
+
+  @Column('float')
+  @IsNumber()
+  @IsPositive()
+  @IsNotEmpty()
+  lowValueAlert: number;
+
+  @Column({ type: 'enum', enum: VitalSignUnits })
+  @IsEnum(VitalSignUnits)
+  unit: VitalSignUnits;
 
   @OneToMany(() => VitalSign, (vitalSign) => vitalSign.vitalSignType)
   vitalSigns: VitalSign[];
