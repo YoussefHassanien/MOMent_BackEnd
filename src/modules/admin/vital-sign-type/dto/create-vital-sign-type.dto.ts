@@ -1,6 +1,6 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsNumber, IsPositive } from 'class-validator';
 import { VitalSignsTypes, VitalSignUnits } from '../../../../constants/enums';
-import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateVitalSignTypeDto {
   @ApiProperty({

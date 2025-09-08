@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsPositive, IsUUID, IsNumber } from 'class-validator';
+import { IsNumber, IsPositive, IsString, IsUUID } from 'class-validator';
 
 export class CreateVitalSignDto {
   @ApiProperty({

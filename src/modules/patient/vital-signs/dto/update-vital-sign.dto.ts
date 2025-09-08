@@ -1,4 +1,12 @@
-import { PartialType } from '@nestjs/swagger';
-import { CreateVitalSignDto } from './create-vital-sign.dto';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsNumber, IsPositive } from 'class-validator';
 
-export class UpdateVitalSignDto extends PartialType(CreateVitalSignDto) {}
+export class UpdateVitalSignDto {
+  @ApiProperty({
+    description: 'Vital sign value',
+    example: '80',
+  })
+  @IsNumber()
+  @IsPositive()
+  value: number;
+}

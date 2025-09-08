@@ -1,24 +1,24 @@
 import {
-  Entity,
-  PrimaryGeneratedColumn,
+  IsDate,
+  IsInt,
+  IsNotEmpty,
+  IsNumber,
+  IsPositive,
+  IsString,
+  IsUUID,
+} from 'class-validator';
+import {
   Column,
-  ManyToOne,
   CreateDateColumn,
-  UpdateDateColumn,
+  Entity,
   Generated,
   JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { Patient } from './patient.entity';
 import { VitalSignType } from './vitalSignType.entity';
-import {
-  IsString,
-  IsNotEmpty,
-  IsDate,
-  IsInt,
-  IsPositive,
-  IsUUID,
-  IsNumber,
-} from 'class-validator';
 
 @Entity('Vital-Signs')
 export class VitalSign {

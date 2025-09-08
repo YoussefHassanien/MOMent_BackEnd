@@ -1,14 +1,14 @@
-import { Language } from '../../../constants/enums';
+import { ApiProperty } from '@nestjs/swagger';
 import {
-  IsEnum,
   IsEmail,
-  IsString,
+  IsEnum,
   IsNotEmpty,
   IsPhoneNumber,
-  MaxLength,
+  IsString,
   IsStrongPassword,
+  MaxLength,
 } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { Language } from '../../../constants/enums';
 
 class CreateUserDto {
   @ApiProperty({

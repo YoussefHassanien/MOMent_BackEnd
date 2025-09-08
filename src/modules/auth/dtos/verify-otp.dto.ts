@@ -1,11 +1,11 @@
-import {
-  IsString,
-  IsNotEmpty,
-  IsUUID,
-  IsInt,
-  IsPositive,
-} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import {
+  IsInt,
+  IsNotEmpty,
+  IsPositive,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 
 class VerifyOtpDto {
   @ApiProperty({
