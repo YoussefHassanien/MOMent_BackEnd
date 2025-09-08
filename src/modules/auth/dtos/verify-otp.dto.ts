@@ -7,7 +7,7 @@ import {
   IsUUID,
 } from 'class-validator';
 
-class VerifyOtpDto {
+export class VerifyOtpDto {
   @ApiProperty({
     description: 'User global ID (UUID)',
     example: '123e4567-e89b-12d3-a456-426614174000',
@@ -28,5 +28,3 @@ class VerifyOtpDto {
   @IsNotEmpty()
   otp: number;
 }
-
-export default VerifyOtpDto;

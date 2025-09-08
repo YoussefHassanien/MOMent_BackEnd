@@ -16,7 +16,7 @@ import {
   AuthenticationGuard,
   AuthorizationGuard,
 } from 'src/modules/auth/auth.guard';
-import JwtPayload from 'src/modules/auth/jwt.payload';
+import { JwtPayload } from 'src/modules/auth/jwt.payload';
 import { Roles } from 'src/modules/auth/roles.decorator';
 import { CreateVitalSignDto } from './dto/create-vital-sign.dto';
 import { UpdateVitalSignDto } from './dto/update-vital-sign.dto';

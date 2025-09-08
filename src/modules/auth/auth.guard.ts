@@ -10,7 +10,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Request, Response } from 'express';
 import { Role } from '../../constants/enums';
 import { AuthService } from './auth.service';
-import JwtPayload from './jwt.payload';
+import { JwtPayload } from './jwt.payload';
 import { ROLES_KEY } from './roles.decorator';
 
 interface JwtError {
@@ -116,8 +116,8 @@ export class AuthenticationGuard implements CanActivate {
             sameSite: 'strict' as const,
           });
 
-          const typedReq = context.switchToHttp().getRequest<Request>();
-          typedReq.user = {
+          const req = context.switchToHttp().getRequest<Request>();
+          req.user = {
             id: user.id,
             email: user.email,
             mobileNumber: user.mobileNumber,
@@ -161,7 +161,7 @@ export class AuthorizationGuard implements CanActivate {
       return true;
     }
     const request = context.switchToHttp().getRequest<Request>();
-    const user = request.user;
+    const user = request.user as JwtPayload;
 
     if (!user) {
       return false;

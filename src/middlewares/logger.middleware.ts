@@ -1,9 +1,16 @@
 import { Injectable, Logger, NestMiddleware } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { NextFunction, Request, Response } from 'express';
 
 @Injectable()
 export class LoggerMiddleware implements NestMiddleware {
-  private readonly logger = new Logger('HTTP');
+  private readonly logger: Logger;
+
+  constructor(private readonly configService: ConfigService) {
+    if (this.configService.getOrThrow<string>('environment') === 'dev')
+      this.logger = new Logger('HTTP');
+    else this.logger = new Logger('HTTPS');
+  }
 
   use(req: Request, res: Response, next: NextFunction): void {
     const { method } = req;

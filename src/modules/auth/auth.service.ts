@@ -11,13 +11,13 @@ import * as bcrypt from 'bcrypt';
 import { randomInt, randomUUID } from 'crypto';
 import { MoreThan, Repository } from 'typeorm';
 import { Role } from '../../constants/enums';
-import { OTP, Patient, RefreshToken, User } from '../../database/index';
-import { EmailService } from '../../services/email/email.service';
-import CreateUserDto from './dtos/create-user.dto';
-import ResendOtpDto from './dtos/resend-otp.dto';
-import UserLoginDto from './dtos/user-login.dto';
-import VerifyOtpDto from './dtos/verify-otp.dto';
-import JwtPayload from './jwt.payload';
+import { OTP, Patient, RefreshToken, User } from '../../database';
+import { EmailService } from '../../services/email.service';
+import { CreateUserDto } from './dtos/create-user.dto';
+import { ResendOtpDto } from './dtos/resend-otp.dto';
+import { UserLoginDto } from './dtos/user-login.dto';
+import { VerifyOtpDto } from './dtos/verify-otp.dto';
+import { JwtPayload } from './jwt.payload';
 
 @Injectable()
 export class AuthService {
@@ -149,20 +149,14 @@ export class AuthService {
     if (existingOtp) {
       return await this.generateAccessCredentials(existingUser);
     } else {
-      await this.otpRepository.delete({
-        userId: existingUser.id,
-        used: false,
-      });
-
       const otp = await this.generateOtp(existingUser.id);
       await this.emailService.sendOtpEmail(
         existingUser.email,
         otp,
         existingUser.name,
       );
+      return { id: existingUser.globalId };
     }
-
-    return { id: existingUser.globalId };
   }
 
   async verifyOtp(verifyOtpDto: VerifyOtpDto) {

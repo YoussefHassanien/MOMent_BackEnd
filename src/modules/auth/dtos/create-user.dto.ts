@@ -10,7 +10,7 @@ import {
 } from 'class-validator';
 import { Language } from '../../../constants/enums';
 
-class CreateUserDto {
+export class CreateUserDto {
   @ApiProperty({
     description: 'User first name',
     example: 'John',
@@ -73,5 +73,3 @@ class CreateUserDto {
   @IsNotEmpty()
   language: Language;
 }
-
-export default CreateUserDto;

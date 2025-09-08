@@ -19,7 +19,7 @@ export const dataSourceAsyncOptions: TypeOrmModuleAsyncOptions = {
       entities: ['dist/**/*.entity.js'],
       migrations: ['dist/database/migrations/*.js'],
       synchronize: false,
-      logging: configService.getOrThrow<string>('environment') === 'dev',
+      logging: ['error', 'warn'],
     };
   },
 };
@@ -33,6 +33,6 @@ export const dataSourceOptions: DataSourceOptions = {
   entities: ['dist/**/*.entity.js'],
   migrations: ['dist/database/migrations/*.js'],
   synchronize: false,
-  logging: process.env.ENVIRONMENT === 'dev',
+  logging: ['error', 'warn'],
 };
 export const dataSource = new DataSource(dataSourceOptions);

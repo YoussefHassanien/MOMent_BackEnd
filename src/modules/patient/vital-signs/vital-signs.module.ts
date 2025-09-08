@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Patient, VitalSign, VitalSignType } from '../../../database/index';
+import { Patient, VitalSign, VitalSignType } from '../../../database';
 import { VitalSignsController } from './vital-signs.controller';
 import { VitalSignsService } from './vital-signs.service';
 

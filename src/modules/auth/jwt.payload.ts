@@ -1,6 +1,6 @@
 import { Role } from '../../constants/enums';
 
-class JwtPayload {
+export class JwtPayload {
   public readonly id: number;
   public readonly email: string;
   public readonly mobileNumber: string;
@@ -12,5 +12,3 @@ class JwtPayload {
     this.role = role;
   }
 }
-
-export default JwtPayload;
