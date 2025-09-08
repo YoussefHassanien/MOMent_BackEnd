@@ -8,16 +8,9 @@ import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { Request, Response } from 'express';
-<<<<<<< HEAD
 import { Role } from '../../constants/enums';
 import { AuthService } from './auth.service';
 import JwtPayload from './jwt.payload';
-=======
-import { AuthService } from './auth.service';
-import JwtPayload from './jwt.payload';
-import { Role } from '../../constants/enums';
-import { Reflector } from '@nestjs/core';
->>>>>>> origin/main
 import { ROLES_KEY } from './roles.decorator';
 
 interface JwtError {

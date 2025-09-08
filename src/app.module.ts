@@ -13,9 +13,6 @@ import { VitalSignTypeModule } from './modules/admin/vital-sign-type/vital-sign-
 import { AuthModule } from './modules/auth/auth.module';
 import { VitalSignsModule } from './modules/patient/vital-signs/vital-signs.module';
 import { EmailModule } from './services/email/email.module';
-import { VitalSignsModule } from './modules/patient/vital-signs/vital-signs.module';
-import { LoggerMiddleware } from './middlewares/logger.middleware';
-import { VitalSignTypeModule } from './modules/admin/vital-sign-type/vital-sign-type.module';
 
 @Module({
   imports: [
