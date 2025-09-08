@@ -1,4 +1,21 @@
 import {
+<<<<<<< HEAD
+=======
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToMany,
+  CreateDateColumn,
+  UpdateDateColumn,
+  Generated,
+} from 'typeorm';
+import { VitalSign } from './vitalSign.entity';
+import { VitalSignsTypes, VitalSignUnits } from '../../constants/enums';
+import {
+  IsEnum,
+  IsString,
+  IsNotEmpty,
+>>>>>>> origin/main
   IsDate,
   IsEnum,
   IsInt,
