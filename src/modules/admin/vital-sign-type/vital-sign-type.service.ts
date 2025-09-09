@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { VitalSignType } from '../../../database/index';
+import { VitalSignType } from '../../../database';
 import { CreateVitalSignTypeDto } from './dto/create-vital-sign-type.dto';
 import { UpdateVitalSignTypeDto } from './dto/update-vital-sign-type.dto';
 

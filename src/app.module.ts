@@ -1,4 +1,4 @@
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { Logger, MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -12,7 +12,7 @@ import { LoggerMiddleware } from './middlewares/logger.middleware';
 import { VitalSignTypeModule } from './modules/admin/vital-sign-type/vital-sign-type.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { VitalSignsModule } from './modules/patient/vital-signs/vital-signs.module';
-import { EmailModule } from './services/email/email.module';
+import { TasksModule } from './tasks/tasks.module';
 
 @Module({
   imports: [
@@ -29,23 +29,24 @@ import { EmailModule } from './services/email/email.module';
       },
     ]),
     ScheduleModule.forRoot(),
-    EmailModule,
     AuthModule,
     VitalSignsModule,
     VitalSignTypeModule,
+    TasksModule,
   ],
   controllers: [AppController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule implements NestModule {
+  private readonly logger = new Logger(AppModule.name);
   constructor(private readonly dataSource: DataSource) {
     const connectionStatus: string = this.dataSource.isInitialized
       ? 'succeeded'
       : 'failed';
-    console.log(`Database connection ${connectionStatus}`);
+    this.logger.log(`Database connection ${connectionStatus}`);
   }
 
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(LoggerMiddleware).forRoutes('*');
+    consumer.apply(LoggerMiddleware).forRoutes('*path');
   }
 }

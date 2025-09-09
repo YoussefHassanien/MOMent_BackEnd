@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { VitalSignType } from '../../../database/index';
+import { VitalSignType } from '../../../database';
 import { VitalSignTypeController } from './vital-sign-type.controller';
 import { VitalSignTypeService } from './vital-sign-type.service';
 

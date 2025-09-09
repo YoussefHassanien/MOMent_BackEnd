@@ -1,8 +1,8 @@
 import { Global, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { OTP, Patient, RefreshToken, User } from '../../database/index';
-import { EmailModule } from '../../services/email/email.module';
+import { OTP, Patient, RefreshToken, User } from '../../database';
+import { EmailService } from '../../services/email.service';
 import { AuthController } from './auth.controller';
 import { AuthenticationGuard, AuthorizationGuard } from './auth.guard';
 import { AuthService } from './auth.service';
@@ -14,10 +14,14 @@ import { AuthService } from './auth.service';
       global: true,
     }),
     TypeOrmModule.forFeature([User, OTP, Patient, RefreshToken]),
-    EmailModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, AuthenticationGuard, AuthorizationGuard],
+  providers: [
+    AuthService,
+    EmailService,
+    AuthenticationGuard,
+    AuthorizationGuard,
+  ],
   exports: [AuthService, AuthenticationGuard, AuthorizationGuard],
 })
 export class AuthModule {}

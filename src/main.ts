@@ -1,13 +1,16 @@
-import { ValidationPipe, VersioningType } from '@nestjs/common';
+import { Logger, ValidationPipe, VersioningType } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+const bootstrap = async () => {
+  const logger = new Logger('Bootstrap');
+
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
   app.setGlobalPrefix(configService.getOrThrow<string>('globalPrefix'));
   app.enableVersioning({
@@ -47,14 +50,22 @@ async function bootstrap() {
     }),
   );
   await app.listen(configService.getOrThrow<number>('port') ?? 3000);
-}
-bootstrap()
-  .then(() => {
-    console.log(
-      `Server started at: http://localhost:${process.env.PORT ?? 3000}/${process.env.GLOBAL_PREFIX}/v${process.env.VERSION}`,
-      `\nServer docs at: http://localhost:${process.env.PORT ?? 3000}/${process.env.GLOBAL_PREFIX}/v${process.env.VERSION}/docs`,
-    );
-  })
-  .catch((error) => {
-    console.log('Server failed to start', error);
-  });
+
+  const port = configService.getOrThrow<number>('port') ?? 3000;
+  const globalPrefix = configService.getOrThrow<string>('globalPrefix');
+  const version = configService.getOrThrow<string>('version');
+
+  logger.log(
+    `Server started at: http://localhost:${port}/${globalPrefix}/v${version}`,
+  );
+  logger.log(
+    `Server docs at: http://localhost:${port}/${globalPrefix}/v${version}/docs`,
+  );
+};
+bootstrap().catch((error) => {
+  const logger = new Logger('Bootstrap');
+  logger.error(
+    'Server failed to start',
+    error instanceof Error ? error.stack : String(error),
+  );
+});
