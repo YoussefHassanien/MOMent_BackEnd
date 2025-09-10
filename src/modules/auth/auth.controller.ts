@@ -96,7 +96,6 @@ export class AuthController {
       httpOnly: true,
       signed: true,
       secure: this.configService.getOrThrow<string>('environment') !== 'dev',
-      sameSite: 'strict' as const,
     };
 
     res.cookie('accessToken', accessToken, cookieOptions);
