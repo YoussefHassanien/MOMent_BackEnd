@@ -13,6 +13,7 @@ import { VitalSignTypeModule } from './modules/admin/vital-sign-type/vital-sign-
 import { AuthModule } from './modules/auth/auth.module';
 import { VitalSignsModule } from './modules/patient/vital-signs/vital-signs.module';
 import { TasksModule } from './tasks/tasks.module';
+import { LabRadReportsUploadModule } from './modules/patient/lab-rad-reports-upload/lab-rad-reports-upload.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { TasksModule } from './tasks/tasks.module';
     VitalSignsModule,
     VitalSignTypeModule,
     TasksModule,
+    LabRadReportsUploadModule,
   ],
   controllers: [AppController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
