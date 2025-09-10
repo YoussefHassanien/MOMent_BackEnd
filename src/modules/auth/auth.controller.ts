@@ -78,6 +78,10 @@ export class AuthController {
       httpOnly: true,
       signed: true,
       secure: this.configService.getOrThrow<string>('environment') !== 'dev',
+      sameSite:
+        this.configService.getOrThrow<string>('environment') !== 'dev'
+          ? ('none' as const)
+          : ('lax' as const),
     };
 
     res.clearCookie('accessToken', cookieOptions);
@@ -96,6 +100,10 @@ export class AuthController {
       httpOnly: true,
       signed: true,
       secure: this.configService.getOrThrow<string>('environment') !== 'dev',
+      sameSite:
+        this.configService.getOrThrow<string>('environment') !== 'dev'
+          ? ('none' as const)
+          : ('lax' as const),
     };
 
     res.cookie('accessToken', accessToken, cookieOptions);
