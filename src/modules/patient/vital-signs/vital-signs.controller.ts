@@ -38,8 +38,9 @@ export class VitalSignsController {
   }
 
   @Get()
-  findAll() {
-    return this.vitalSignsService.findAll();
+  async findAll(@Req() req: Request) {
+    const userData = req.user as JwtPayload;
+    return await this.vitalSignsService.findAll(userData);
   }
 
   @Get(':id')
