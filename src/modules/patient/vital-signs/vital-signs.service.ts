@@ -57,8 +57,13 @@ export class VitalSignsService {
     };
   }
 
-  findAll() {
-    return `This action returns all vitalSigns`;
+  async findAll(userData: JwtPayload) {
+    const patient = await this.patientRepository.findOneBy({
+      userId: userData.id,
+    });
+
+    if (!patient)
+      throw new NotFoundException({ message: 'Patient not found!' });
   }
 
   findOne(id: string) {
