@@ -64,6 +64,53 @@ export class VitalSignsService {
 
     if (!patient)
       throw new NotFoundException({ message: 'Patient not found!' });
+
+    // Get all vital sign types
+    const vitalSignTypes = await this.vitalSignTypeRepository.find();
+
+    // Get the most recent vital sign for each type for this patient
+    const recentVitalSigns: Array<{
+      id: string;
+      value: number;
+      type: string;
+      typeId: string;
+      unit: string;
+      createdAt: Date;
+      updatedAt: Date;
+      warning: string | null;
+    }> = [];
+
+    for (const vitalSignType of vitalSignTypes) {
+      const mostRecentVitalSign = await this.vitalSignRepository.findOne({
+        where: {
+          patientId: patient.id,
+          typeId: vitalSignType.id,
+        },
+        order: {
+          createdAt: 'DESC',
+        },
+      });
+
+      if (mostRecentVitalSign) {
+        const warning = this.checkWarning(
+          vitalSignType,
+          mostRecentVitalSign.value,
+        );
+
+        recentVitalSigns.push({
+          id: mostRecentVitalSign.globalId,
+          value: mostRecentVitalSign.value,
+          type: vitalSignType.type,
+          typeId: vitalSignType.globalId,
+          unit: vitalSignType.unit,
+          createdAt: mostRecentVitalSign.createdAt,
+          updatedAt: mostRecentVitalSign.updatedAt,
+          warning: warning,
+        });
+      }
+    }
+
+    return recentVitalSigns;
   }
 
   findOne(id: string) {
