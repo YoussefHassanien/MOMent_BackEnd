@@ -57,6 +57,30 @@ export class VitalSignsService {
     };
   }
 
+  async findAllTypes() {
+    // Get all vital sign types
+    const vitalSignTypes = await this.vitalSignTypeRepository.find();
+
+    // Get all vital sign types
+    const vitalSignsTypesDto: Array<{
+      id: string;
+      type: string;
+      typeId: string;
+      unit: string;
+    }> = [];
+
+    for (const vitalSignType of vitalSignTypes) {
+      vitalSignsTypesDto.push({
+        id: vitalSignType.globalId,
+        type: vitalSignType.type,
+        typeId: vitalSignType.globalId,
+        unit: vitalSignType.unit,
+      });
+    }
+
+    return vitalSignsTypesDto;
+  }
+
   async findAll(userData: JwtPayload) {
     const patient = await this.patientRepository.findOneBy({
       userId: userData.id,

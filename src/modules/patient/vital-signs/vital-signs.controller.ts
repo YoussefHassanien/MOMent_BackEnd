@@ -37,6 +37,11 @@ export class VitalSignsController {
     return await this.vitalSignsService.create(createVitalSignDto, userData);
   }
 
+  @Get('types')
+  async findAllTypes() {
+    return await this.vitalSignsService.findAllTypes();
+  }
+
   @Get()
   async findAll(@Req() req: Request) {
     const userData = req.user as JwtPayload;
