@@ -2,60 +2,45 @@ import {
   CanActivate,
   ExecutionContext,
   Injectable,
+  InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
-import { Request, Response } from 'express';
+import { Request } from 'express';
 import { Role } from '../../constants/enums';
 import { AuthService } from './auth.service';
+import { AccessTokenPayload, JwtError } from './interfaces';
 import { JwtPayload } from './jwt.payload';
 import { ROLES_KEY } from './roles.decorator';
 
-interface JwtError {
-  name: string;
-  message: string;
-}
-
-interface AccessTokenPayload {
-  sub: number;
-  email: string;
-  mobileNumber: string;
-  role: Role;
-}
-
-interface RefreshTokenPayload {
-  sub: number;
-}
-
 @Injectable()
 export class AuthenticationGuard implements CanActivate {
-  private readonly cookiesExpirationTime: number;
   constructor(
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly authService: AuthService,
-  ) {
-    this.cookiesExpirationTime = this.configService.getOrThrow<number>(
-      'cookiesExpirationTime',
-    );
-  }
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest<Request>();
-    const accessToken: string | undefined = req.signedCookies?.[
-      'accessToken'
-    ] as string | undefined;
-    const refreshToken: string | undefined = req.signedCookies?.[
-      'refreshToken'
-    ] as string | undefined;
+    const authHeader = req.headers['authorization'];
+
+    if (!authHeader)
+      throw new UnauthorizedException({
+        message: 'Authorization header not found!',
+      });
+
+    if (!authHeader.startsWith('Bearer '))
+      throw new UnauthorizedException({
+        message: 'Invalid authorization header',
+      });
+
+    const accessToken = authHeader.split(' ')[1];
 
     if (!accessToken)
       throw new UnauthorizedException({ message: 'Access token not found!' });
-
-    if (!refreshToken)
-      throw new UnauthorizedException({ message: 'Refresh token not found!' });
 
     try {
       const user = await this.jwtService.verifyAsync<AccessTokenPayload>(
@@ -74,76 +59,16 @@ export class AuthenticationGuard implements CanActivate {
 
       return true;
     } catch (error: unknown) {
-      const jwtError = error as JwtError;
-      if (jwtError.name === 'TokenExpiredError') {
-        try {
-          const { sub: userId } =
-            await this.jwtService.verifyAsync<RefreshTokenPayload>(
-              refreshToken,
-              {
-                secret:
-                  this.configService.getOrThrow<string>('refreshTokenSecret'),
-              },
-            );
-
-          const databaseRefreshToken =
-            await this.authService.validateRefreshToken(refreshToken, userId);
-
-          if (!databaseRefreshToken)
-            throw new UnauthorizedException({
-              message: 'Invalid refresh token',
-            });
-
-          const user = await this.authService.findUserById(userId);
-
-          if (!user)
-            throw new UnauthorizedException({ message: 'User not found!' });
-
-          const newAccessToken = await this.authService.generateAccessToken({
-            id: userId,
-            email: user.email,
-            mobileNumber: user.mobileNumber,
-            role: user.role,
-          });
-
-          const res = context.switchToHttp().getResponse<Response>();
-          res.cookie('accessToken', newAccessToken, {
-            expires: new Date(Date.now() + this.cookiesExpirationTime),
-            httpOnly: true,
-            signed: true,
-            secure:
-              this.configService.getOrThrow<string>('environment') !== 'dev',
-            sameSite: 'strict' as const,
-          });
-
-          const req = context.switchToHttp().getRequest<Request>();
-          req.user = {
-            id: user.id,
-            email: user.email,
-            mobileNumber: user.mobileNumber,
-            role: user.role,
-          };
-
-          return true;
-        } catch (refreshError: any) {
-          const refreshJwtError = refreshError as JwtError;
-          if (refreshJwtError.name === 'TokenExpiredError') {
-            throw new UnauthorizedException({
-              message: 'Refresh token expired. Please login again',
-            });
-          }
-          if (refreshJwtError.name === 'JsonWebTokenError') {
-            throw new UnauthorizedException({
-              message: 'Invalid refresh token!',
-            });
-          }
-          throw new UnauthorizedException({ message: 'Token refresh failed' });
-        }
+      const accessTokenError = error as JwtError;
+      if (accessTokenError.name === 'TokenExpiredError') {
+        throw new UnauthorizedException({ message: 'Access token is expired' });
       }
-      if (jwtError.name === 'JsonWebTokenError') {
+      if (accessTokenError.name === 'JsonWebTokenError') {
         throw new UnauthorizedException({ message: 'Invalid access token!' });
       }
-      throw new UnauthorizedException({ message: 'Token verification failed' });
+      throw new InternalServerErrorException({
+        message: 'Token verification failed',
+      });
     }
   }
 }

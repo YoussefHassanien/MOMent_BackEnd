@@ -20,6 +20,7 @@ export class VitalSignTypeService {
     return {
       id: createdVitalSignType.globalId,
       type: createdVitalSignType.type,
+      unit: createdVitalSignType.unit,
       minValidValue: createdVitalSignType.minValidValue,
       maxValidValue: createdVitalSignType.maxValidValue,
       lowValueAlert: createdVitalSignType.lowValueAlert,
