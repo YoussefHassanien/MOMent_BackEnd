@@ -57,8 +57,84 @@ export class VitalSignsService {
     };
   }
 
-  findAll() {
-    return `This action returns all vitalSigns`;
+  async findAllTypes() {
+    // Get all vital sign types
+    const vitalSignTypes = await this.vitalSignTypeRepository.find();
+
+    // Get all vital sign types
+    const vitalSignsTypesDto: Array<{
+      id: string;
+      type: string;
+      typeId: string;
+      unit: string;
+    }> = [];
+
+    for (const vitalSignType of vitalSignTypes) {
+      vitalSignsTypesDto.push({
+        id: vitalSignType.globalId,
+        type: vitalSignType.type,
+        typeId: vitalSignType.globalId,
+        unit: vitalSignType.unit,
+      });
+    }
+
+    return vitalSignsTypesDto;
+  }
+
+  async findAll(userData: JwtPayload) {
+    const patient = await this.patientRepository.findOneBy({
+      userId: userData.id,
+    });
+
+    if (!patient)
+      throw new NotFoundException({ message: 'Patient not found!' });
+
+    // Get all vital sign types
+    const vitalSignTypes = await this.vitalSignTypeRepository.find();
+
+    // Get the most recent vital sign for each type for this patient
+    const recentVitalSigns: Array<{
+      id: string;
+      value: number;
+      type: string;
+      typeId: string;
+      unit: string;
+      createdAt: Date;
+      updatedAt: Date;
+      warning: string | null;
+    }> = [];
+
+    for (const vitalSignType of vitalSignTypes) {
+      const mostRecentVitalSign = await this.vitalSignRepository.findOne({
+        where: {
+          patientId: patient.id,
+          typeId: vitalSignType.id,
+        },
+        order: {
+          createdAt: 'DESC',
+        },
+      });
+
+      if (mostRecentVitalSign) {
+        const warning = this.checkWarning(
+          vitalSignType,
+          mostRecentVitalSign.value,
+        );
+
+        recentVitalSigns.push({
+          id: mostRecentVitalSign.globalId,
+          value: mostRecentVitalSign.value,
+          type: vitalSignType.type,
+          typeId: vitalSignType.globalId,
+          unit: vitalSignType.unit,
+          createdAt: mostRecentVitalSign.createdAt,
+          updatedAt: mostRecentVitalSign.updatedAt,
+          warning: warning,
+        });
+      }
+    }
+
+    return recentVitalSigns;
   }
 
   findOne(id: string) {

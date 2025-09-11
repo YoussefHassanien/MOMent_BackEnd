@@ -113,7 +113,10 @@ export class AuthenticationGuard implements CanActivate {
             signed: true,
             secure:
               this.configService.getOrThrow<string>('environment') !== 'dev',
-            sameSite: 'strict' as const,
+            sameSite:
+              this.configService.getOrThrow<string>('environment') !== 'dev'
+                ? ('none' as const)
+                : ('lax' as const),
           });
 
           const req = context.switchToHttp().getRequest<Request>();
