@@ -15,13 +15,13 @@ import { CreateVitalSignTypeDto } from './dto/create-vital-sign-type.dto';
 import { UpdateVitalSignTypeDto } from './dto/update-vital-sign-type.dto';
 import { VitalSignTypeService } from './vital-sign-type.service';
 
+@UseGuards(AuthenticationGuard, AuthorizationGuard)
+@Roles(Role.ADMIN)
 @Controller('admin/vital-sign-type')
 export class VitalSignTypeController {
   constructor(private readonly vitalSignTypeService: VitalSignTypeService) {}
 
   @Post()
-  @UseGuards(AuthenticationGuard, AuthorizationGuard)
-  @Roles(Role.ADMIN)
   async create(@Body() createVitalSignTypeDto: CreateVitalSignTypeDto) {
     return await this.vitalSignTypeService.create(createVitalSignTypeDto);
   }

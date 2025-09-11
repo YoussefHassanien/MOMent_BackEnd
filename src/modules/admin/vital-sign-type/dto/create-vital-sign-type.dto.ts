@@ -6,7 +6,7 @@ export class CreateVitalSignTypeDto {
   @ApiProperty({
     description: 'Type of vital sign',
     enum: VitalSignsTypes,
-    example: VitalSignsTypes.BLOOD_GLUCOSE,
+    example: VitalSignsTypes.BLOOD_GLUCOSE_FASTING,
     enumName: 'VitalSignsTypes',
   })
   @IsEnum(VitalSignsTypes)
