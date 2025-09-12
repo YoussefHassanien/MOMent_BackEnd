@@ -5,16 +5,15 @@ import {
   Post,
   Put,
   Req,
-  Res,
   UseGuards,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { Throttle, minutes } from '@nestjs/throttler';
-import { Request, Response } from 'express';
+import { Request } from 'express';
 import { Role } from '../../constants/enums';
 import { AuthenticationGuard } from './auth.guard';
 import { AuthService } from './auth.service';
 import { CreateUserDto } from './dtos/create-user.dto';
+import { RefreshAccessTokenDto } from './dtos/refresh-access-token.dto';
 import { ResendOtpDto } from './dtos/resend-otp.dto';
 import { UserLoginDto } from './dtos/user-login.dto';
 import { VerifyOtpDto } from './dtos/verify-otp.dto';
@@ -25,41 +24,22 @@ import { JwtPayload } from './jwt.payload';
 })
 @Controller('auth')
 export class AuthController {
-  private readonly cookiesExpirationTime: number;
-  constructor(
-    private readonly authService: AuthService,
-    private readonly configService: ConfigService,
-  ) {
-    this.cookiesExpirationTime = this.configService.getOrThrow<number>(
-      'cookiesExpirationTime',
-    );
-  }
+  constructor(private readonly authService: AuthService) {}
 
   @Post('patient')
-  async create(@Body() user: CreateUserDto) {
+  async create(@Body() createUserDto: CreateUserDto) {
     const role: Role = Role.PATIENT;
-    return await this.authService.create(user, role);
+    return await this.authService.create(createUserDto, role);
   }
 
   @Post('login')
-  async login(@Body() userLoginDto: UserLoginDto, @Res() res: Response) {
-    const result = await this.authService.login(userLoginDto);
-
-    if ('id' in result) return res.status(201).json({ id: result.id });
-
-    this.setAuthCookies(res, result.accessToken, result.refreshToken);
-
-    return res.status(201).json({ user: result.user });
+  async login(@Body() userLoginDto: UserLoginDto) {
+    return await this.authService.login(userLoginDto);
   }
 
   @Post('verify-otp')
-  async verifyOtp(@Body() verifyOtpDto: VerifyOtpDto, @Res() res: Response) {
-    const { accessToken, refreshToken, user } =
-      await this.authService.verifyOtp(verifyOtpDto);
-
-    this.setAuthCookies(res, accessToken, refreshToken);
-
-    return res.status(201).json({ user });
+  async verifyOtp(@Body() verifyOtpDto: VerifyOtpDto) {
+    return await this.authService.verifyOtp(verifyOtpDto);
   }
 
   @Put('resend-otp')
@@ -69,44 +49,16 @@ export class AuthController {
 
   @Delete('logout')
   @UseGuards(AuthenticationGuard)
-  async logout(@Req() req: Request, @Res() res: Response) {
+  async logout(@Req() req: Request) {
     const user = req.user as JwtPayload;
 
-    await this.authService.logout(user.id);
-
-    const cookieOptions = {
-      httpOnly: true,
-      signed: true,
-      secure: this.configService.getOrThrow<string>('environment') !== 'dev',
-      sameSite:
-        this.configService.getOrThrow<string>('environment') !== 'dev'
-          ? ('none' as const)
-          : ('lax' as const),
-    };
-
-    res.clearCookie('accessToken', cookieOptions);
-    res.clearCookie('refreshToken', cookieOptions);
-
-    return res.status(200).json({ message: 'Logged out successfully' });
+    return await this.authService.logout(user.id);
   }
 
-  private setAuthCookies(
-    res: Response,
-    accessToken: string,
-    refreshToken: string,
-  ) {
-    const cookieOptions = {
-      expires: new Date(Date.now() + this.cookiesExpirationTime),
-      httpOnly: true,
-      signed: true,
-      secure: this.configService.getOrThrow<string>('environment') !== 'dev',
-      sameSite:
-        this.configService.getOrThrow<string>('environment') !== 'dev'
-          ? ('none' as const)
-          : ('lax' as const),
-    };
-
-    res.cookie('accessToken', accessToken, cookieOptions);
-    res.cookie('refreshToken', refreshToken, cookieOptions);
+  @Post('refresh')
+  async refreshToken(@Body() refreshTokenDto: RefreshAccessTokenDto) {
+    return await this.authService.refreshAccessToken(
+      refreshTokenDto.refreshToken,
+    );
   }
 }

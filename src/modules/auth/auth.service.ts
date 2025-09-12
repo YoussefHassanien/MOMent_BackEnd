@@ -2,6 +2,7 @@ import {
   BadRequestException,
   GoneException,
   Injectable,
+  InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -17,6 +18,7 @@ import { CreateUserDto } from './dtos/create-user.dto';
 import { ResendOtpDto } from './dtos/resend-otp.dto';
 import { UserLoginDto } from './dtos/user-login.dto';
 import { VerifyOtpDto } from './dtos/verify-otp.dto';
+import { JwtError, RefreshTokenPayload } from './interfaces';
 import { JwtPayload } from './jwt.payload';
 
 @Injectable()
@@ -222,6 +224,55 @@ export class AuthService {
     await this.refreshTokenRepository.delete({
       userId: userId,
     });
+    return { message: 'Logged out successfully' };
+  }
+
+  async refreshAccessToken(refreshToken: string) {
+    try {
+      const { sub: userId } =
+        await this.jwtService.verifyAsync<RefreshTokenPayload>(refreshToken, {
+          secret: this.refreshTokenSecret,
+        });
+
+      const dbRefreshToken = await this.refreshTokenRepository.findOneBy({
+        userId: userId,
+        token: refreshToken,
+      });
+      if (!dbRefreshToken)
+        throw new UnauthorizedException({
+          message: 'Refresh token not found, Please login again',
+        });
+      const user = await this.userRepository.findOneBy({
+        id: userId,
+      });
+      if (!user)
+        throw new UnauthorizedException({ message: 'User not found!' });
+      const newAccessToken = await this.generateAccessToken({
+        id: userId,
+        email: user.email,
+        mobileNumber: user.mobileNumber,
+        role: user.role,
+      });
+
+      return {
+        newAccessToken,
+      };
+    } catch (error: unknown) {
+      const refreshTokenError = error as JwtError;
+      if (refreshTokenError.name === 'TokenExpiredError') {
+        throw new UnauthorizedException({
+          message: 'Refresh token is expired. Please login again',
+        });
+      }
+      if (refreshTokenError.name === 'JsonWebTokenError') {
+        throw new UnauthorizedException({
+          message: 'Invalid refresh token!',
+        });
+      }
+      throw new InternalServerErrorException({
+        message: 'Access token refresh failed',
+      });
+    }
   }
 
   private async generateOtp(userId: number) {
@@ -238,7 +289,7 @@ export class AuthService {
     return otpValue;
   }
 
-  async generateAccessToken(payload: JwtPayload) {
+  private async generateAccessToken(payload: JwtPayload) {
     const tokenPayload = {
       sub: payload.id,
       email: payload.email,
@@ -298,23 +349,9 @@ export class AuthService {
         name: user.name,
         mobileNumber: user.mobileNumber,
         email: user.email,
+        language: user.language,
         role: user.role,
       },
     };
-  }
-
-  async validateRefreshToken(token: string, userId: number): Promise<boolean> {
-    const refreshToken = await this.refreshTokenRepository.findOneBy({
-      userId: userId,
-      token: token,
-    });
-
-    return refreshToken !== null;
-  }
-
-  async findUserById(userId: number) {
-    return await this.userRepository.findOneBy({
-      id: userId,
-    });
   }
 }

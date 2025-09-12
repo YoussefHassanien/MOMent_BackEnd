@@ -12,11 +12,13 @@ export enum Language {
 export enum VitalSignsTypes {
   SYSTOLIC_PRESSURE = 'SYSTOLIC_PRESSURE',
   DIASTOLIC_PRESSURE = 'DIASTOLIC_PRESSURE',
-  BLOOD_GLUCOSE = 'BLOOD_GLUCOSE',
+  BLOOD_GLUCOSE_FASTING = 'BLOOD_GLUCOSE_FASTING',
+  BLOOD_GLUCOSE_POSTPRANDIAL = 'BLOOD_GLUCOSE_POSTPRANDIAL',
   HEIGHT = 'HEIGHT',
   WEIGHT = 'WEIGHT',
   HEART_RATE = 'HEART_RATE',
   AGE = 'AGE',
+  BODY_MASS_INDEX = 'BODY_MASS_INDEX',
 }
 
 export enum VitalSignUnits {
@@ -26,4 +28,5 @@ export enum VitalSignUnits {
   KG = 'kg', // Weight
   BPM = 'bpm', // Heart rate
   YEARS = 'years', // Age
+  KG_MM = 'kg/(m*m)', // Body mass index
 }

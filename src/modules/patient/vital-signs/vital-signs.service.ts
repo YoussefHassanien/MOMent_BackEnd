@@ -3,15 +3,19 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtPayload } from 'src/modules/auth/jwt.payload';
 import { Repository } from 'typeorm';
+import { VitalSignsTypes } from '../../../constants/enums';
 import { Patient, VitalSign, VitalSignType } from '../../../database';
+import { CreateAgeDto } from './dto/create-age.dto';
 import { CreateVitalSignDto } from './dto/create-vital-sign.dto';
 import { UpdateVitalSignDto } from './dto/update-vital-sign.dto';
 
 @Injectable()
 export class VitalSignsService {
+  private readonly egyptTime: number;
   constructor(
     @InjectRepository(VitalSign)
     private readonly vitalSignRepository: Repository<VitalSign>,
@@ -19,21 +23,33 @@ export class VitalSignsService {
     private readonly vitalSignTypeRepository: Repository<VitalSignType>,
     @InjectRepository(Patient)
     private readonly patientRepository: Repository<Patient>,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.egyptTime = this.configService.getOrThrow<number>('egyptTime');
+  }
   async create(createVitalSignDto: CreateVitalSignDto, userData: JwtPayload) {
-    const patient = await this.patientRepository.findOneBy({
-      userId: userData.id,
-    });
+    const [patient, vitalSignType] = await Promise.all([
+      this.patientRepository.findOneBy({
+        userId: userData.id,
+      }),
+      this.vitalSignTypeRepository.findOneBy({
+        globalId: createVitalSignDto.typeId,
+      }),
+    ]);
 
     if (!patient)
       throw new NotFoundException({ message: 'Patient not found!' });
 
-    const vitalSignType = await this.vitalSignTypeRepository.findOneBy({
-      globalId: createVitalSignDto.typeId,
-    });
-
     if (!vitalSignType)
       throw new NotFoundException({ message: 'Vital sign type not found!' });
+
+    if (
+      vitalSignType.type === VitalSignsTypes.AGE ||
+      vitalSignType.type === VitalSignsTypes.BODY_MASS_INDEX
+    )
+      throw new BadRequestException({
+        message: 'This endpoint is not for age and body mass index',
+      });
 
     this.validateVitalSignValue(vitalSignType, createVitalSignDto.value);
 
@@ -47,38 +63,78 @@ export class VitalSignsService {
 
     await this.vitalSignRepository.save(vitalSign);
 
+    if (
+      vitalSignType.type === VitalSignsTypes.HEIGHT ||
+      vitalSignType.type === VitalSignsTypes.WEIGHT
+    ) {
+      await this.calculateAndSaveBMI(patient.id);
+    }
+
     return {
       id: vitalSign.globalId,
       value: vitalSign.value,
       type: vitalSignType.type,
-      createdAt: vitalSign.createdAt,
-      updatedAt: vitalSign.updatedAt,
-      warnig: warning,
+      unit: vitalSignType.unit,
+      createdAt: new Date(
+        new Date(vitalSign.createdAt).getTime() + this.egyptTime,
+      ),
+      updatedAt: new Date(
+        new Date(vitalSign.updatedAt).getTime() + this.egyptTime,
+      ),
+      warning: warning,
     };
   }
 
-  async findAllTypes() {
-    // Get all vital sign types
-    const vitalSignTypes = await this.vitalSignTypeRepository.find();
+  async createAge(createAgeDto: CreateAgeDto, userData: JwtPayload) {
+    const [patient, vitalSignType] = await Promise.all([
+      this.patientRepository.findOneBy({
+        userId: userData.id,
+      }),
+      this.vitalSignTypeRepository.findOneBy({
+        globalId: createAgeDto.typeId,
+      }),
+    ]);
 
-    // Get all vital sign types
-    const vitalSignsTypesDto: Array<{
-      id: string;
-      type: string;
-      typeId: string;
-      unit: string;
-    }> = [];
+    if (!patient)
+      throw new NotFoundException({ message: 'Patient not found!' });
 
-    for (const vitalSignType of vitalSignTypes) {
-      vitalSignsTypesDto.push({
-        id: vitalSignType.globalId,
-        type: vitalSignType.type,
-        typeId: vitalSignType.globalId,
-        unit: vitalSignType.unit,
-      });
-    }
+    if (!vitalSignType || vitalSignType.type !== VitalSignsTypes.AGE)
+      throw new BadRequestException({ message: 'Type id is not the AGE id' });
 
-    return vitalSignsTypesDto;
+    const existingAge = await this.vitalSignRepository.findOneBy({
+      patientId: patient.id,
+      typeId: vitalSignType.id,
+    });
+
+    if (existingAge)
+      throw new BadRequestException({ message: 'Age already exists' });
+
+    await this.patientRepository.update(patient.id, {
+      dateOfBirth: createAgeDto.dateOfBirth,
+    });
+
+    const age = this.calculateAge(createAgeDto.dateOfBirth);
+
+    const vitalSign = this.vitalSignRepository.create({
+      patientId: patient.id,
+      typeId: vitalSignType.id,
+      value: age,
+    });
+
+    await this.vitalSignRepository.save(vitalSign);
+
+    return {
+      id: vitalSign.globalId,
+      type: vitalSignType.type,
+      value: age,
+      unit: vitalSignType.unit,
+      createdAt: new Date(
+        new Date(vitalSign.createdAt).getTime() + this.egyptTime,
+      ),
+      updatedAt: new Date(
+        new Date(vitalSign.updatedAt).getTime() + this.egyptTime,
+      ),
+    };
   }
 
   async findAll(userData: JwtPayload) {
@@ -89,22 +145,37 @@ export class VitalSignsService {
     if (!patient)
       throw new NotFoundException({ message: 'Patient not found!' });
 
-    // Get all vital sign types
     const vitalSignTypes = await this.vitalSignTypeRepository.find();
 
-    // Get the most recent vital sign for each type for this patient
-    const recentVitalSigns: Array<{
-      id: string;
-      value: number;
-      type: string;
-      typeId: string;
-      unit: string;
-      createdAt: Date;
-      updatedAt: Date;
-      warning: string | null;
-    }> = [];
+    const vitalSignsResponse: Record<string, any> = {};
 
     for (const vitalSignType of vitalSignTypes) {
+      const baseResponse: {
+        typeId: string;
+        unit: string;
+        minValidValue: number;
+        maxValidValue: number;
+        lowValueAlert: number;
+        highValueAlert: number;
+        id: string | null;
+        value: number | null;
+        createdAt: Date | null;
+        updatedAt: Date | null;
+        warning: string | null;
+      } = {
+        typeId: vitalSignType.globalId,
+        unit: vitalSignType.unit,
+        minValidValue: vitalSignType.minValidValue,
+        maxValidValue: vitalSignType.maxValidValue,
+        lowValueAlert: vitalSignType.lowValueAlert,
+        highValueAlert: vitalSignType.highValueAlert,
+        id: null,
+        value: null,
+        createdAt: null,
+        updatedAt: null,
+        warning: null,
+      };
+
       const mostRecentVitalSign = await this.vitalSignRepository.findOne({
         where: {
           patientId: patient.id,
@@ -121,57 +192,89 @@ export class VitalSignsService {
           mostRecentVitalSign.value,
         );
 
-        recentVitalSigns.push({
-          id: mostRecentVitalSign.globalId,
-          value: mostRecentVitalSign.value,
-          type: vitalSignType.type,
-          typeId: vitalSignType.globalId,
-          unit: vitalSignType.unit,
-          createdAt: mostRecentVitalSign.createdAt,
-          updatedAt: mostRecentVitalSign.updatedAt,
-          warning: warning,
-        });
+        baseResponse.id = mostRecentVitalSign.globalId;
+        baseResponse.value = mostRecentVitalSign.value;
+        baseResponse.createdAt = new Date(
+          new Date(mostRecentVitalSign.createdAt).getTime() + this.egyptTime,
+        );
+        baseResponse.updatedAt = new Date(
+          new Date(mostRecentVitalSign.updatedAt).getTime() + this.egyptTime,
+        );
+        baseResponse.warning = warning;
       }
+
+      vitalSignsResponse[vitalSignType.type] = baseResponse;
     }
 
-    return recentVitalSigns;
+    return vitalSignsResponse;
   }
 
   findOne(id: string) {
     return `This action returns a vital sign with UUID: ${id}`;
   }
 
-  async update(id: string, updateVitalSignDto: UpdateVitalSignDto) {
-    const vitalSign = await this.vitalSignRepository.findOneBy({
-      globalId: id,
+  async update(
+    id: string,
+    updateVitalSignDto: UpdateVitalSignDto,
+    userData: JwtPayload,
+  ) {
+    const vitalSign = await this.vitalSignRepository.findOne({
+      where: {
+        globalId: id,
+        patient: { userId: userData.id },
+      },
+      relations: { vitalSignType: true, patient: true },
     });
 
     if (!vitalSign)
-      throw new NotFoundException({ message: 'Vital sign not found!' });
+      throw new NotFoundException({
+        message: 'Vital sign not found!',
+      });
 
-    const vitalSignType = await this.vitalSignTypeRepository.findOneBy({
-      id: vitalSign.typeId,
-    });
+    if (!vitalSign.vitalSignType)
+      throw new NotFoundException({
+        message: 'Vital sign type not found!',
+      });
 
-    if (!vitalSignType)
-      throw new NotFoundException({ message: 'Vital sign type not found!' });
+    if (!vitalSign.patient)
+      throw new NotFoundException({
+        message: 'Patient not found!',
+      });
+
+    const vitalSignType = vitalSign.vitalSignType;
+
+    if (
+      vitalSignType.type === VitalSignsTypes.AGE ||
+      vitalSignType.type === VitalSignsTypes.BODY_MASS_INDEX
+    )
+      throw new BadRequestException({
+        message: 'This endpoint is not for age and body mass index',
+      });
 
     this.validateVitalSignValue(vitalSignType, updateVitalSignDto.value);
 
     const warning = this.checkWarning(vitalSignType, updateVitalSignDto.value);
 
-    // Update the vital sign value
     vitalSign.value = updateVitalSignDto.value;
+    const updatedVitalSign = await this.vitalSignRepository.save(vitalSign);
 
-    // Save the updated vital sign
-    await this.vitalSignRepository.save(vitalSign);
+    if (
+      vitalSignType.type === VitalSignsTypes.HEIGHT ||
+      vitalSignType.type === VitalSignsTypes.WEIGHT
+    ) {
+      await this.calculateAndSaveBMI(vitalSign.patient.id, true);
+    }
 
     return {
-      id: vitalSign.globalId,
-      value: vitalSign.value,
+      id: updatedVitalSign.globalId,
+      value: updatedVitalSign.value,
       type: vitalSignType.type,
-      createdAt: vitalSign.createdAt,
-      updatedAt: vitalSign.updatedAt,
+      createdAt: new Date(
+        new Date(updatedVitalSign.createdAt).getTime() + this.egyptTime,
+      ),
+      updatedAt: new Date(
+        new Date(updatedVitalSign.updatedAt).getTime() + this.egyptTime,
+      ),
       warning: warning,
     };
   }
@@ -198,5 +301,81 @@ export class VitalSignsService {
       warning = `Low ${vitalSigntype.type} value, Please contact your doctor`;
 
     return warning;
+  }
+
+  private calculateAge(dateOfBirth: Date) {
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+
+    // If birth month hasn't occurred this year, or
+    // if birth month is current month but birth day hasn't occurred
+    if (
+      monthDiff < 0 ||
+      (monthDiff === 0 && today.getDate() < birthDate.getDate())
+    ) {
+      age--;
+    }
+
+    return age;
+  }
+
+  private async calculateAndSaveBMI(
+    patientId: number,
+    isUpdate: boolean = false,
+  ) {
+    const [bmiType, heightType, weightType] = await Promise.all([
+      this.vitalSignTypeRepository.findOneBy({
+        type: VitalSignsTypes.BODY_MASS_INDEX,
+      }),
+      this.vitalSignTypeRepository.findOneBy({
+        type: VitalSignsTypes.HEIGHT,
+      }),
+      this.vitalSignTypeRepository.findOneBy({
+        type: VitalSignsTypes.WEIGHT,
+      }),
+    ]);
+
+    if (!bmiType || !heightType || !weightType) {
+      return;
+    }
+
+    const [heightVitalSign, weightVitalSign] = await Promise.all([
+      this.vitalSignRepository.findOne({
+        where: { patientId: patientId, typeId: heightType.id },
+        order: { createdAt: 'DESC' },
+      }),
+      this.vitalSignRepository.findOne({
+        where: { patientId: patientId, typeId: weightType.id },
+        order: { createdAt: 'DESC' },
+      }),
+    ]);
+
+    if (heightVitalSign && weightVitalSign) {
+      const heightInMeters = heightVitalSign.value / 100; // Convert cm to meters
+      const weightInKg = weightVitalSign.value; // Weight in kg
+      const bmi = Number((weightInKg / heightInMeters ** 2).toFixed(1));
+
+      if (!isUpdate) {
+        const bmiVitalSign = this.vitalSignRepository.create({
+          patientId: patientId,
+          typeId: bmiType.id,
+          value: bmi,
+        });
+
+        await this.vitalSignRepository.save(bmiVitalSign);
+      } else {
+        await this.vitalSignRepository.upsert(
+          {
+            patientId: patientId,
+            typeId: bmiType.id,
+            value: bmi,
+          },
+          { conflictPaths: ['patientId', 'typeId'] },
+        );
+      }
+    }
   }
 }
