@@ -18,6 +18,7 @@ import {
 } from 'src/modules/auth/auth.guard';
 import { JwtPayload } from 'src/modules/auth/jwt.payload';
 import { Roles } from 'src/modules/auth/roles.decorator';
+import { CreateAgeDto } from './dto/create-age.dto';
 import { CreateVitalSignDto } from './dto/create-vital-sign.dto';
 import { UpdateVitalSignDto } from './dto/update-vital-sign.dto';
 import { VitalSignsService } from './vital-signs.service';
@@ -35,6 +36,12 @@ export class VitalSignsController {
   ) {
     const userData = req.user as JwtPayload;
     return await this.vitalSignsService.create(createVitalSignDto, userData);
+  }
+
+  @Post('age')
+  async createAge(@Req() req: Request, @Body() createAgeDto: CreateAgeDto) {
+    const userData = req.user as JwtPayload;
+    return await this.vitalSignsService.createAge(createAgeDto, userData);
   }
 
   @Get('types')
@@ -57,8 +64,10 @@ export class VitalSignsController {
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateVitalSignDto: UpdateVitalSignDto,
+    @Req() req: Request,
   ) {
-    return this.vitalSignsService.update(id, updateVitalSignDto);
+    const userData = req.user as JwtPayload;
+    return this.vitalSignsService.update(id, updateVitalSignDto, userData);
   }
 
   @Delete(':id')
