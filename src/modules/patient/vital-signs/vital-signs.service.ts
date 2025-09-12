@@ -137,30 +137,6 @@ export class VitalSignsService {
     };
   }
 
-  async findAllTypes() {
-    // Get all vital sign types
-    const vitalSignTypes = await this.vitalSignTypeRepository.find();
-
-    // Get all vital sign types
-    const vitalSignsTypesDto: Array<{
-      id: string;
-      type: string;
-      typeId: string;
-      unit: string;
-    }> = [];
-
-    for (const vitalSignType of vitalSignTypes) {
-      vitalSignsTypesDto.push({
-        id: vitalSignType.globalId,
-        type: vitalSignType.type,
-        typeId: vitalSignType.globalId,
-        unit: vitalSignType.unit,
-      });
-    }
-
-    return vitalSignsTypesDto;
-  }
-
   async findAll(userData: JwtPayload) {
     const patient = await this.patientRepository.findOneBy({
       userId: userData.id,
@@ -169,22 +145,37 @@ export class VitalSignsService {
     if (!patient)
       throw new NotFoundException({ message: 'Patient not found!' });
 
-    // Get all vital sign types
     const vitalSignTypes = await this.vitalSignTypeRepository.find();
 
-    // Get the most recent vital sign for each type for this patient
-    const recentVitalSigns: Array<{
-      id: string;
-      value: number;
-      type: string;
-      typeId: string;
-      unit: string;
-      createdAt: Date;
-      updatedAt: Date;
-      warning: string | null;
-    }> = [];
+    const vitalSignsResponse: Record<string, any> = {};
 
     for (const vitalSignType of vitalSignTypes) {
+      const baseResponse: {
+        typeId: string;
+        unit: string;
+        minValidValue: number;
+        maxValidValue: number;
+        lowValueAlert: number;
+        highValueAlert: number;
+        id: string | null;
+        value: number | null;
+        createdAt: Date | null;
+        updatedAt: Date | null;
+        warning: string | null;
+      } = {
+        typeId: vitalSignType.globalId,
+        unit: vitalSignType.unit,
+        minValidValue: vitalSignType.minValidValue,
+        maxValidValue: vitalSignType.maxValidValue,
+        lowValueAlert: vitalSignType.lowValueAlert,
+        highValueAlert: vitalSignType.highValueAlert,
+        id: null,
+        value: null,
+        createdAt: null,
+        updatedAt: null,
+        warning: null,
+      };
+
       const mostRecentVitalSign = await this.vitalSignRepository.findOne({
         where: {
           patientId: patient.id,
@@ -201,24 +192,21 @@ export class VitalSignsService {
           mostRecentVitalSign.value,
         );
 
-        recentVitalSigns.push({
-          id: mostRecentVitalSign.globalId,
-          value: mostRecentVitalSign.value,
-          type: vitalSignType.type,
-          typeId: vitalSignType.globalId,
-          unit: vitalSignType.unit,
-          createdAt: new Date(
-            new Date(mostRecentVitalSign.createdAt).getTime() + this.egyptTime,
-          ),
-          updatedAt: new Date(
-            new Date(mostRecentVitalSign.updatedAt).getTime() + this.egyptTime,
-          ),
-          warning: warning,
-        });
+        baseResponse.id = mostRecentVitalSign.globalId;
+        baseResponse.value = mostRecentVitalSign.value;
+        baseResponse.createdAt = new Date(
+          new Date(mostRecentVitalSign.createdAt).getTime() + this.egyptTime,
+        );
+        baseResponse.updatedAt = new Date(
+          new Date(mostRecentVitalSign.updatedAt).getTime() + this.egyptTime,
+        );
+        baseResponse.warning = warning;
       }
+
+      vitalSignsResponse[vitalSignType.type] = baseResponse;
     }
 
-    return recentVitalSigns;
+    return vitalSignsResponse;
   }
 
   findOne(id: string) {
