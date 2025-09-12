@@ -42,7 +42,6 @@ export class VitalSignsController {
   async createAge(@Req() req: Request, @Body() createAgeDto: CreateAgeDto) {
     const userData = req.user as JwtPayload;
     return await this.vitalSignsService.createAge(createAgeDto, userData);
-  }
 
   @Get()
   async findAll(@Req() req: Request) {
