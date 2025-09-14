@@ -55,14 +55,10 @@ export class VitalSignsController {
     return this.vitalSignsService.findOne(id);
   }
 
-  @Patch(':id')
-  update(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() updateVitalSignDto: UpdateVitalSignDto,
-    @Req() req: Request,
-  ) {
+  @Patch()
+  update(@Body() updateVitalSignDto: UpdateVitalSignDto, @Req() req: Request) {
     const userData = req.user as JwtPayload;
-    return this.vitalSignsService.update(id, updateVitalSignDto, userData);
+    return this.vitalSignsService.update(updateVitalSignDto, userData);
   }
 
   @Delete(':id')

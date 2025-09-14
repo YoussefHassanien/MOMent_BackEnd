@@ -213,14 +213,10 @@ export class VitalSignsService {
     return `This action returns a vital sign with UUID: ${id}`;
   }
 
-  async update(
-    id: string,
-    updateVitalSignDto: UpdateVitalSignDto,
-    userData: JwtPayload,
-  ) {
+  async update(updateVitalSignDto: UpdateVitalSignDto, userData: JwtPayload) {
     const vitalSign = await this.vitalSignRepository.findOne({
       where: {
-        globalId: id,
+        globalId: updateVitalSignDto.id,
         patient: { userId: userData.id },
       },
       relations: { vitalSignType: true, patient: true },
