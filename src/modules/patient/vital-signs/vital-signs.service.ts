@@ -363,13 +363,12 @@ export class VitalSignsService {
 
         await this.vitalSignRepository.save(bmiVitalSign);
       } else {
-        await this.vitalSignRepository.upsert(
+        await this.vitalSignRepository.update(
           {
             patientId: patientId,
             typeId: bmiType.id,
-            value: bmi,
           },
-          { conflictPaths: ['patientId', 'typeId'] },
+          { value: bmi },
         );
       }
     }
