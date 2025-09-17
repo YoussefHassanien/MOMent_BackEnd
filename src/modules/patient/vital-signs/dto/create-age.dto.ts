@@ -1,13 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsDate, IsString, IsUUID, MaxDate } from 'class-validator';
+import { IsDate, IsUUID, MaxDate } from 'class-validator';
 
 export class CreateAgeDto {
   @ApiProperty({
     description: 'Age global ID (UUID)',
     example: '4b3e381c-1c8a-442d-a229-4b89d1ba1a09',
   })
-  @IsString()
   @IsUUID()
   typeId: string;
 
