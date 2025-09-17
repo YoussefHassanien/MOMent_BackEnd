@@ -7,13 +7,19 @@ import {
   ParseFilePipeBuilder,
   Post,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Role } from '../../../constants/enums';
+import { AuthenticationGuard, AuthorizationGuard } from '../../auth/auth.guard';
+import { Roles } from '../../auth/roles.decorator';
 import { CreateReportDto } from './dto/create-report.dto';
 import { MedicalReportsService } from './medical-reports.service';
 
-@Controller('reports-upload')
+@UseGuards(AuthenticationGuard, AuthorizationGuard)
+@Roles(Role.PATIENT)
+@Controller('medical-reports')
 export class MedicalReportsController {
   constructor(private readonly medicalReportsService: MedicalReportsService) {}
 
