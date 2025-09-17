@@ -18,7 +18,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Patient } from './patient.entity';
-import { VitalSignType } from './vitalSignType.entity';
+import { VitalSignType } from './vital-sign-type.entity';
 
 @Entity('Vital-Signs')
 export class VitalSign {

@@ -30,3 +30,20 @@ export enum VitalSignUnits {
   YEARS = 'years', // Age
   KG_MM = 'kg/(m*m)', // Body mass index
 }
+
+export enum CloudinaryFolders {
+  BASE_FOLDER = 'MOMent Project',
+  PATIENTS = 'Patients',
+  REPORTS = 'Reports',
+}
+
+export enum ReportsType {
+  LAB = 'Lab',
+  RAD = 'Rad',
+}
+
+export enum ReportsExtension {
+  JPG = 'jpg',
+  PNG = 'png',
+  PDF = 'pdf',
+}
