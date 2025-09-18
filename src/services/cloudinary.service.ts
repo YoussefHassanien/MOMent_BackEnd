@@ -55,4 +55,28 @@ export class CloudinaryService {
       return false;
     }
   }
+
+  async deletePatientMedicalReport(url: string) {
+    try {
+      // Extract public id
+      const parts = url.split('/');
+      const publicId = parts
+        .slice(7, parts.length)
+        .join('/')
+        .replace('%20', ' ')
+        .split('.')[0];
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const deletionResult = await this.cloudinary.uploader.destroy(publicId);
+
+      this.logger.log(
+        `Deleting medical report of public id: ${publicId} \nresult: ${JSON.stringify(deletionResult)}`,
+      );
+
+      return deletionResult !== undefined;
+    } catch (error) {
+      this.logger.error('Failed to delete patient medical report', error);
+      return false;
+    }
+  }
 }

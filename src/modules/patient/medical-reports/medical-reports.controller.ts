@@ -5,7 +5,10 @@ import {
   Get,
   Param,
   ParseFilePipeBuilder,
+  ParseIntPipe,
+  ParseUUIDPipe,
   Post,
+  Query,
   Req,
   UploadedFile,
   UseGuards,
@@ -52,17 +55,18 @@ export class MedicalReportsController {
   }
 
   @Get()
-  findAll() {
-    return this.medicalReportsService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.medicalReportsService.findOne(+id);
+  async findAll(
+    @Req() req: Request,
+    @Query('page', ParseIntPipe) page: number,
+    @Query('limit', ParseIntPipe) limit: number,
+  ) {
+    const userData = req.user as JwtPayload;
+    return await this.medicalReportsService.findAll(userData, page, limit);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.medicalReportsService.remove(+id);
+  async remove(@Param('id', ParseUUIDPipe) id: string, @Req() req: Request) {
+    const userData = req.user as JwtPayload;
+    return await this.medicalReportsService.remove(id, userData);
   }
 }

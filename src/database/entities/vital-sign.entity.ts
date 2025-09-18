@@ -12,6 +12,7 @@ import {
   CreateDateColumn,
   Entity,
   Generated,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -36,6 +37,7 @@ export class VitalSign {
   @Column()
   @IsInt()
   @IsPositive()
+  @Index()
   typeId: number;
 
   @ManyToOne(() => VitalSignType, (vitalSignType) => vitalSignType.vitalSigns)
@@ -49,6 +51,7 @@ export class VitalSign {
   @Column()
   @IsInt()
   @IsPositive()
+  @Index()
   patientId: number;
 
   @Column('float')

@@ -13,6 +13,7 @@ import {
   CreateDateColumn,
   Entity,
   Generated,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -66,5 +67,6 @@ export class MedicalReport {
   @Column()
   @IsInt()
   @IsPositive()
+  @Index()
   patientId: number;
 }
