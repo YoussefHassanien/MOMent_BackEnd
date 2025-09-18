@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseEnumPipe,
   ParseFilePipeBuilder,
   ParseIntPipe,
   ParseUUIDPipe,
@@ -16,7 +17,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Request } from 'express';
-import { Role } from '../../../constants/enums';
+import { ReportsType, Role } from '../../../constants/enums';
 import { JwtPayload } from '../../../modules/auth/jwt.payload';
 import { AuthenticationGuard, AuthorizationGuard } from '../../auth/auth.guard';
 import { Roles } from '../../auth/roles.decorator';
@@ -59,9 +60,15 @@ export class MedicalReportsController {
     @Req() req: Request,
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
+    @Query('type', new ParseEnumPipe(ReportsType)) type: ReportsType,
   ) {
     const userData = req.user as JwtPayload;
-    return await this.medicalReportsService.findAll(userData, page, limit);
+    return await this.medicalReportsService.findAll(
+      userData,
+      type,
+      page,
+      limit,
+    );
   }
 
   @Delete(':id')

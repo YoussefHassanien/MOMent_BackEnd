@@ -25,20 +25,12 @@ export class CloudinaryService {
     patientId: string,
   ) {
     try {
-      const transformation: Record<any, string> = {
-        quality: 'auto',
-      };
-
-      if (file.mimetype.includes('image/'))
-        transformation.fetch_format = 'auto';
-
       const uploadResult = await this.cloudinary.uploader.upload(
         `data:${file.mimetype};base64,${file.buffer.toString('base64')}`,
         {
-          folder: `${CloudinaryFolders.BASE_FOLDER}/${CloudinaryFolders.PATIENTS}/${CloudinaryFolders.REPORTS}/${patientId}`,
-          resource_type: 'auto',
-          use_filename: true,
-          transformation,
+          asset_folder: `${CloudinaryFolders.BASE_FOLDER}/${CloudinaryFolders.PATIENTS}/${CloudinaryFolders.REPORTS}/${patientId}`,
+          public_id: `${patientId}-${Date.now()}`,
+          display_name: file.originalname,
         },
       );
 
@@ -46,7 +38,7 @@ export class CloudinaryService {
         `Uploaded medical report result: ${JSON.stringify(uploadResult)}`,
       );
 
-      return uploadResult.secure_url;
+      return { publicId: uploadResult.public_id, url: uploadResult.secure_url };
     } catch (error) {
       this.logger.error(
         `Failed to upload medical report of patient id: ${patientId}:`,
@@ -56,16 +48,8 @@ export class CloudinaryService {
     }
   }
 
-  async deletePatientMedicalReport(url: string) {
+  async deletePatientMedicalReport(publicId: string) {
     try {
-      // Extract public id
-      const parts = url.split('/');
-      const publicId = parts
-        .slice(7, parts.length)
-        .join('/')
-        .replace('%20', ' ')
-        .split('.')[0];
-
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const deletionResult = await this.cloudinary.uploader.destroy(publicId);
 

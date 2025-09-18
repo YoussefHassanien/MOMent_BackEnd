@@ -49,6 +49,11 @@ export class MedicalReport {
   date: Date;
 
   @Column()
+  @IsString()
+  @IsNotEmpty()
+  publicId: string;
+
+  @Column()
   @IsUrl()
   url: string;
 
