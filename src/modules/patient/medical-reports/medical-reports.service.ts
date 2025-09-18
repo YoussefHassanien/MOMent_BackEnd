@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { ReportsType } from '../../../constants/enums';
 import { PaginationResponse } from '../../../constants/interfaces';
 import { MedicalReport, Patient } from '../../../database';
 import { JwtPayload } from '../../../modules/auth/jwt.payload';
@@ -34,12 +35,13 @@ export class MedicalReportsService {
     if (!patient)
       throw new NotFoundException({ message: 'Patient not found!' });
 
-    const url = await this.cloudinaryService.uploadPatientMedicalReport(
-      file,
-      patient.globalId,
-    );
+    const cloudinaryUploadResult =
+      await this.cloudinaryService.uploadPatientMedicalReport(
+        file,
+        patient.globalId,
+      );
 
-    if (!url)
+    if (!cloudinaryUploadResult)
       throw new InternalServerErrorException({
         message: 'Error during uploading the medical report',
       });
@@ -48,16 +50,22 @@ export class MedicalReportsService {
       name: createReportDto.name,
       type: createReportDto.type,
       date: createReportDto.date,
-      url: url,
+      publicId: cloudinaryUploadResult.publicId,
+      url: cloudinaryUploadResult.url,
       patientId: patient.id,
     });
 
     return {
-      url,
+      url: cloudinaryUploadResult.url,
     };
   }
 
-  async findAll(userData: JwtPayload, page: number = 1, limit: number = 30) {
+  async findAll(
+    userData: JwtPayload,
+    type: ReportsType,
+    page: number = 1,
+    limit: number = 30,
+  ) {
     if (page <= 0 || limit <= 0) {
       throw new BadRequestException({
         message: 'Page and limit must be positive integers',
@@ -78,12 +86,12 @@ export class MedicalReportsService {
     const medicalReports = await this.medicalReportRepository.find({
       where: {
         patientId: patient.id,
+        type,
       },
       select: {
         globalId: true,
         name: true,
         date: true,
-        type: true,
         url: true,
         createdAt: true,
       },
@@ -122,7 +130,7 @@ export class MedicalReportsService {
       throw new UnauthorizedException();
 
     const isDeleted = await this.cloudinaryService.deletePatientMedicalReport(
-      medicalRecord.url,
+      medicalRecord.publicId,
     );
 
     if (!isDeleted)
