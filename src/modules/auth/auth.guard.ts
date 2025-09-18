@@ -10,7 +10,6 @@ import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { Role } from '../../constants/enums';
-import { AuthService } from './auth.service';
 import { AccessTokenPayload, JwtError } from './interfaces';
 import { JwtPayload } from './jwt.payload';
 import { ROLES_KEY } from './roles.decorator';
@@ -20,7 +19,6 @@ export class AuthenticationGuard implements CanActivate {
   constructor(
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-    private readonly authService: AuthService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {

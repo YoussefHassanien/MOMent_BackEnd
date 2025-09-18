@@ -3,7 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { VitalSignType } from '../../../database';
 import { CreateVitalSignTypeDto } from './dto/create-vital-sign-type.dto';
-import { UpdateVitalSignTypeDto } from './dto/update-vital-sign-type.dto';
 
 @Injectable()
 export class VitalSignTypeService {
@@ -28,21 +27,5 @@ export class VitalSignTypeService {
       createdAt: createdVitalSignType.createdAt,
       updatedAt: createdVitalSignType.updatedAt,
     };
-  }
-
-  findAll() {
-    return `This action returns all vitalSignType`;
-  }
-
-  findOne(id: number) {
-    return `This action returns a #${id} vitalSignType`;
-  }
-
-  update(id: number, updateVitalSignTypeDto: UpdateVitalSignTypeDto) {
-    return `This action updates a #${id} vitalSignType`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} vitalSignType`;
   }
 }

@@ -1,10 +1,7 @@
 import {
   Body,
   Controller,
-  Delete,
   Get,
-  Param,
-  ParseUUIDPipe,
   Patch,
   Post,
   Req,
@@ -50,19 +47,9 @@ export class VitalSignsController {
     return await this.vitalSignsService.findAll(userData);
   }
 
-  @Get(':id')
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.vitalSignsService.findOne(id);
-  }
-
   @Patch()
   update(@Body() updateVitalSignDto: UpdateVitalSignDto, @Req() req: Request) {
     const userData = req.user as JwtPayload;
     return this.vitalSignsService.update(updateVitalSignDto, userData);
-  }
-
-  @Delete(':id')
-  remove(@Param('id', ParseUUIDPipe) id: string) {
-    return this.vitalSignsService.remove(id);
   }
 }

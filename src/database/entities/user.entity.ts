@@ -1,29 +1,28 @@
 import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  UpdateDateColumn,
-  OneToMany,
-  OneToOne,
-  Generated,
-} from 'typeorm';
-import { OTP } from './otp.entity';
-import { Patient } from './patient.entity';
-import { Role, Language } from '../../constants/enums';
-import {
-  IsEnum,
+  IsDate,
   IsEmail,
-  IsString,
+  IsEnum,
+  IsInt,
   IsNotEmpty,
   IsPhoneNumber,
-  IsStrongPassword,
-  IsDate,
-  IsInt,
   IsPositive,
+  IsString,
+  IsStrongPassword,
   IsUUID,
 } from 'class-validator';
-import { RefreshToken } from './refreshToken.entity';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  Generated,
+  OneToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { Language, Role } from '../../constants/enums';
+import { OTP } from './otp.entity';
+import { Patient } from './patient.entity';
+import { RefreshToken } from './refresh-token.entity';
 
 @Entity('Users')
 export class User {

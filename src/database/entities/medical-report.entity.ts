@@ -1,10 +1,11 @@
 import {
   IsDate,
+  IsEnum,
   IsInt,
   IsNotEmpty,
-  IsNumber,
   IsPositive,
   IsString,
+  IsUrl,
   IsUUID,
 } from 'class-validator';
 import {
@@ -12,16 +13,17 @@ import {
   CreateDateColumn,
   Entity,
   Generated,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { ReportsType } from '../../constants/enums';
 import { Patient } from './patient.entity';
-import { VitalSignType } from './vitalSignType.entity';
 
-@Entity('Vital-Signs')
-export class VitalSign {
+@Entity('Medical-Reports')
+export class MedicalReport {
   @PrimaryGeneratedColumn()
   @IsInt()
   @IsPositive()
@@ -34,36 +36,37 @@ export class VitalSign {
   globalId: string;
 
   @Column()
-  @IsInt()
-  @IsPositive()
-  typeId: number;
+  @IsString()
+  @IsNotEmpty()
+  name: string;
 
-  @ManyToOne(() => VitalSignType, (vitalSignType) => vitalSignType.vitalSigns)
-  @JoinColumn({ name: 'typeId' })
-  vitalSignType: VitalSignType;
+  @Column({ type: 'enum', enum: ReportsType })
+  @IsEnum(ReportsType)
+  type: ReportsType;
 
-  @ManyToOne(() => Patient, (patient) => patient.vitals)
+  @Column()
+  @IsDate()
+  date: Date;
+
+  @Column()
+  @IsUrl()
+  url: string;
+
+  @CreateDateColumn()
+  @IsDate()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  @IsDate()
+  updatedAt: Date;
+
+  @ManyToOne(() => Patient, (patient) => patient.medicalReports)
   @JoinColumn({ name: 'patientId' })
   patient: Patient;
 
   @Column()
   @IsInt()
   @IsPositive()
+  @Index()
   patientId: number;
-
-  @Column('float')
-  @IsNumber()
-  @IsPositive()
-  @IsNotEmpty()
-  value: number;
-
-  @CreateDateColumn()
-  @IsDate()
-  @IsNotEmpty()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  @IsDate()
-  @IsNotEmpty()
-  updatedAt: Date;
 }

@@ -209,10 +209,6 @@ export class VitalSignsService {
     return vitalSignsResponse;
   }
 
-  findOne(id: string) {
-    return `This action returns a vital sign with UUID: ${id}`;
-  }
-
   async update(updateVitalSignDto: UpdateVitalSignDto, userData: JwtPayload) {
     const vitalSign = await this.vitalSignRepository.findOne({
       where: {
@@ -273,10 +269,6 @@ export class VitalSignsService {
       ),
       warning: warning,
     };
-  }
-
-  remove(id: string) {
-    return `This action removes a vital sign with UUID: ${id}`;
   }
 
   private validateVitalSignValue(vitalSignType: VitalSignType, value: number) {

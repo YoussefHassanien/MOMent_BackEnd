@@ -11,6 +11,7 @@ import { dataSourceAsyncOptions } from './database/orm.config';
 import { LoggerMiddleware } from './middlewares/logger.middleware';
 import { VitalSignTypeModule } from './modules/admin/vital-sign-type/vital-sign-type.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { MedicalReportsModule } from './modules/patient/medical-reports/medical-reports.module';
 import { VitalSignsModule } from './modules/patient/vital-signs/vital-signs.module';
 import { TasksModule } from './tasks/tasks.module';
 
@@ -33,6 +34,7 @@ import { TasksModule } from './tasks/tasks.module';
     VitalSignsModule,
     VitalSignTypeModule,
     TasksModule,
+    MedicalReportsModule,
   ],
   controllers: [AppController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

@@ -18,7 +18,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { VitalSignsTypes, VitalSignUnits } from '../../constants/enums';
-import { VitalSign } from './vitalSign.entity';
+import { VitalSign } from './vital-sign.entity';
 
 @Entity('Vital-Sign-Types')
 export class VitalSignType {
