@@ -5,6 +5,7 @@ import {
   IsNotEmpty,
   IsPositive,
   IsString,
+  IsUrl,
   IsUUID,
 } from 'class-validator';
 import {
@@ -45,6 +46,10 @@ export class MedicalReport {
   @Column()
   @IsDate()
   date: Date;
+
+  @Column()
+  @IsUrl()
+  url: string;
 
   @CreateDateColumn()
   @IsDate()
