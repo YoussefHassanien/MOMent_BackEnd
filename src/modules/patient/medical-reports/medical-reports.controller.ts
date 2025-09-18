@@ -6,12 +6,15 @@ import {
   Param,
   ParseFilePipeBuilder,
   Post,
+  Req,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Request } from 'express';
 import { Role } from '../../../constants/enums';
+import { JwtPayload } from '../../../modules/auth/jwt.payload';
 import { AuthenticationGuard, AuthorizationGuard } from '../../auth/auth.guard';
 import { Roles } from '../../auth/roles.decorator';
 import { CreateReportDto } from './dto/create-report.dto';
@@ -25,11 +28,11 @@ export class MedicalReportsController {
 
   @Post()
   @UseInterceptors(FileInterceptor('file'))
-  create(
+  async create(
     @UploadedFile(
       new ParseFilePipeBuilder()
         .addFileTypeValidator({
-          fileType: /(jpg|png|pdf)$/,
+          fileType: /(image\/jpeg|image\/jpg|image\/png|application\/pdf)$/,
         })
         .addMaxSizeValidator({
           maxSize: 5 * 1024 * 1024, // 5 MB,
@@ -38,8 +41,14 @@ export class MedicalReportsController {
     )
     file: Express.Multer.File,
     @Body() createReportDto: CreateReportDto,
+    @Req() req: Request,
   ) {
-    return this.medicalReportsService.create(createReportDto);
+    const userData = req.user as JwtPayload;
+    return await this.medicalReportsService.create(
+      file,
+      createReportDto,
+      userData,
+    );
   }
 
   @Get()

@@ -25,32 +25,28 @@ export class CloudinaryService {
     patientId: string,
   ) {
     try {
+      const transformation: Record<any, string> = {
+        quality: 'auto',
+      };
+
+      if (file.mimetype.includes('image/'))
+        transformation.fetch_format = 'auto';
+
       const uploadResult = await this.cloudinary.uploader.upload(
-        file.buffer.toString(),
+        `data:${file.mimetype};base64,${file.buffer.toString('base64')}`,
         {
           folder: `${CloudinaryFolders.BASE_FOLDER}/${CloudinaryFolders.PATIENTS}/${CloudinaryFolders.REPORTS}/${patientId}`,
           resource_type: 'auto',
           use_filename: true,
+          transformation,
         },
       );
+
       this.logger.log(
         `Uploaded medical report result: ${JSON.stringify(uploadResult)}`,
       );
-      const url = this.cloudinary.url(uploadResult.public_id, {
-        transformation: [
-          {
-            fetch_format: 'auto',
-            quality: 'auto',
-          },
-        ],
-      });
 
-      if (!url)
-        throw new Error(
-          `Error generating medical report url of patient id: ${patientId}`,
-        );
-
-      return url;
+      return uploadResult.secure_url;
     } catch (error) {
       this.logger.error(
         `Failed to upload medical report of patient id: ${patientId}:`,

@@ -1,3 +1,4 @@
+export { MedicalReport } from './entities/medical-report.entity';
 export { OTP } from './entities/otp.entity';
 export { Patient } from './entities/patient.entity';
 export { RefreshToken } from './entities/refresh-token.entity';
