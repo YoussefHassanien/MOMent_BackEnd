@@ -5,10 +5,10 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { JwtPayload } from 'src/modules/auth/jwt.payload';
 import { Repository } from 'typeorm';
 import { VitalSignsTypes } from '../../../constants/enums';
 import { Patient, VitalSign, VitalSignType } from '../../../database';
+import { JwtPayload } from '../../../modules/auth/jwt.payload';
 import { CreateAgeDto } from './dto/create-age.dto';
 import { CreateVitalSignDto } from './dto/create-vital-sign.dto';
 import { UpdateVitalSignDto } from './dto/update-vital-sign.dto';

@@ -8,13 +8,13 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Request } from 'express';
-import { Role } from 'src/constants/enums';
+import { Role } from '../../../constants/enums';
 import {
   AuthenticationGuard,
   AuthorizationGuard,
-} from 'src/modules/auth/auth.guard';
-import { JwtPayload } from 'src/modules/auth/jwt.payload';
-import { Roles } from 'src/modules/auth/roles.decorator';
+} from '../../../modules/auth/auth.guard';
+import { JwtPayload } from '../../../modules/auth/jwt.payload';
+import { Roles } from '../../../modules/auth/roles.decorator';
 import { CreateAgeDto } from './dto/create-age.dto';
 import { CreateVitalSignDto } from './dto/create-vital-sign.dto';
 import { UpdateVitalSignDto } from './dto/update-vital-sign.dto';
