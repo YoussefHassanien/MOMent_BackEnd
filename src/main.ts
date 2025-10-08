@@ -8,9 +8,12 @@ import { AppModule } from './app.module';
 
 const bootstrap = async () => {
   const logger = new Logger('Bootstrap');
-
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
+  const port = configService.getOrThrow<number>('port') ?? 3000;
+  const globalPrefix = configService.getOrThrow<string>('globalPrefix');
+  const version = configService.getOrThrow<string>('version');
+
   app.setGlobalPrefix(configService.getOrThrow<string>('globalPrefix'));
   app.enableVersioning({
     type: VersioningType.URI,
@@ -33,6 +36,10 @@ const bootstrap = async () => {
       app,
       documentFactory,
     );
+
+    logger.log(
+      `Server docs at: http://localhost:${port}/${globalPrefix}/v${version}/docs`,
+    );
   }
   app.useGlobalPipes(
     new ValidationPipe({
@@ -42,15 +49,8 @@ const bootstrap = async () => {
   );
   await app.listen(configService.getOrThrow<number>('port') ?? 3000);
 
-  const port = configService.getOrThrow<number>('port') ?? 3000;
-  const globalPrefix = configService.getOrThrow<string>('globalPrefix');
-  const version = configService.getOrThrow<string>('version');
-
   logger.log(
     `Server started at: http://localhost:${port}/${globalPrefix}/v${version}`,
-  );
-  logger.log(
-    `Server docs at: http://localhost:${port}/${globalPrefix}/v${version}/docs`,
   );
 };
 bootstrap().catch((error) => {
