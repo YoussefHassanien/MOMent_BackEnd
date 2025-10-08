@@ -20,6 +20,14 @@ const bootstrap = async () => {
     defaultVersion: configService.getOrThrow<string>('version'),
   });
   app.use(helmet());
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+      forbidNonWhitelisted: true,
+    }),
+  );
+  await app.listen(configService.getOrThrow<number>('port') ?? 3000);
+
   // app.use(cookieParser(configService.getOrThrow<string>('cookiesSecret')));
   if (configService.getOrThrow<string>('environment') === 'dev') {
     app.enableCors();
@@ -40,19 +48,13 @@ const bootstrap = async () => {
     logger.log(
       `Server docs at: http://localhost:${port}/${globalPrefix}/v${version}/docs`,
     );
-  }
-  app.useGlobalPipes(
-    new ValidationPipe({
-      transform: true,
-      forbidNonWhitelisted: true,
-    }),
-  );
-  await app.listen(configService.getOrThrow<number>('port') ?? 3000);
 
-  logger.log(
-    `Server started at: http://localhost:${port}/${globalPrefix}/v${version}`,
-  );
+    logger.log(
+      `Server started at: http://localhost:${port}/${globalPrefix}/v${version}`,
+    );
+  }
 };
+
 bootstrap().catch((error) => {
   const logger = new Logger('Bootstrap');
   logger.error(
