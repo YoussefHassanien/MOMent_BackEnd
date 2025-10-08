@@ -21,6 +21,7 @@ import {
 import { MedicalReport } from './medical-report.entity';
 import { User } from './user.entity';
 import { VitalSign } from './vital-sign.entity';
+import { Surgery } from './surgery.entity';
 
 @Entity('Patients')
 export class Patient {
@@ -64,4 +65,7 @@ export class Patient {
 
   @OneToMany(() => MedicalReport, (mr) => mr.patient)
   medicalReports: MedicalReport[];
+
+  @OneToMany(() => Surgery, (s) => s.patient)
+  surgeries: Surgery[];
 }

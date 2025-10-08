@@ -13,6 +13,7 @@ import { VitalSignTypeModule } from './modules/admin/vital-sign-type/vital-sign-
 import { AuthModule } from './modules/auth/auth.module';
 import { MedicalReportsModule } from './modules/patient/medical-reports/medical-reports.module';
 import { VitalSignsModule } from './modules/patient/vital-signs/vital-signs.module';
+import { SurgeriesModule } from './modules/patient/surgeries/surgeries.module';
 import { TasksModule } from './tasks/tasks.module';
 
 @Module({
@@ -35,6 +36,7 @@ import { TasksModule } from './tasks/tasks.module';
     VitalSignTypeModule,
     TasksModule,
     MedicalReportsModule,
+    SurgeriesModule,
   ],
   controllers: [AppController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
