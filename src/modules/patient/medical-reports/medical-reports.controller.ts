@@ -26,7 +26,7 @@ import { MedicalReportsService } from './medical-reports.service';
 
 @UseGuards(AuthenticationGuard, AuthorizationGuard)
 @Roles(Role.PATIENT)
-@Controller('medical-reports')
+@Controller('patient/medical-reports')
 export class MedicalReportsController {
   constructor(private readonly medicalReportsService: MedicalReportsService) {}
 

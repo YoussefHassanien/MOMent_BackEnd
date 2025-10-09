@@ -1,21 +1,20 @@
 import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  OneToOne,
-  CreateDateColumn,
-  UpdateDateColumn,
-  JoinColumn,
-} from 'typeorm';
-import { User } from './user.entity';
-import {
-  IsNotEmpty,
   IsDate,
   IsInt,
+  IsNotEmpty,
   IsPositive,
-  IsBoolean,
   IsString,
 } from 'class-validator';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  JoinColumn,
+  OneToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { User } from './user.entity';
 
 @Entity('Refresh-Tokens')
 export class RefreshToken {

@@ -8,16 +8,25 @@ import { AppModule } from './app.module';
 
 const bootstrap = async () => {
   const logger = new Logger('Bootstrap');
-
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
+  const port = configService.getOrThrow<number>('port') ?? 3000;
+  const globalPrefix = configService.getOrThrow<string>('globalPrefix');
+  const version = configService.getOrThrow<string>('version');
+
   app.setGlobalPrefix(configService.getOrThrow<string>('globalPrefix'));
   app.enableVersioning({
     type: VersioningType.URI,
     defaultVersion: configService.getOrThrow<string>('version'),
   });
   app.use(helmet());
-  // app.use(cookieParser(configService.getOrThrow<string>('cookiesSecret')));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+      forbidNonWhitelisted: true,
+    }),
+  );
+
   if (configService.getOrThrow<string>('environment') === 'dev') {
     app.enableCors();
     const config = new DocumentBuilder()
@@ -33,26 +42,26 @@ const bootstrap = async () => {
       app,
       documentFactory,
     );
+
+    logger.log(
+      `Server docs at: http://localhost:${port}/${globalPrefix}/v${version}/docs`,
+    );
+
+    logger.log(
+      `Server started at: http://localhost:${port}/${globalPrefix}/v${version}`,
+    );
+  } else if (configService.getOrThrow<string>('environment') === 'prod') {
+    app.enableCors({
+      origin: configService.getOrThrow<string>('audience'),
+      methods: configService.getOrThrow<string[]>('methods'),
+      allowedHeaders: configService.getOrThrow<string[]>('allowedHeaders'),
+      credentials: configService.getOrThrow<string>('credentials') === 'true',
+    });
   }
-  app.useGlobalPipes(
-    new ValidationPipe({
-      transform: true,
-      forbidNonWhitelisted: true,
-    }),
-  );
+
   await app.listen(configService.getOrThrow<number>('port') ?? 3000);
-
-  const port = configService.getOrThrow<number>('port') ?? 3000;
-  const globalPrefix = configService.getOrThrow<string>('globalPrefix');
-  const version = configService.getOrThrow<string>('version');
-
-  logger.log(
-    `Server started at: http://localhost:${port}/${globalPrefix}/v${version}`,
-  );
-  logger.log(
-    `Server docs at: http://localhost:${port}/${globalPrefix}/v${version}/docs`,
-  );
 };
+
 bootstrap().catch((error) => {
   const logger = new Logger('Bootstrap');
   logger.error(

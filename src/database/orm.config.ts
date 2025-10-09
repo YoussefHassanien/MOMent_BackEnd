@@ -20,11 +20,12 @@ export const dataSourceAsyncOptions: TypeOrmModuleAsyncOptions = {
       migrations: ['dist/database/migrations/*.js'],
       synchronize: false,
       logging: ['error', 'warn'],
+      migrationsRun: true,
     };
   },
 };
 
-export const dataSourceOptions: DataSourceOptions = {
+const dataSourceOptions: DataSourceOptions = {
   type: 'postgres',
   url: process.env.DATABASE_URL,
   ssl: {
@@ -34,5 +35,7 @@ export const dataSourceOptions: DataSourceOptions = {
   migrations: ['dist/database/migrations/*.js'],
   synchronize: false,
   logging: ['error', 'warn'],
+  migrationsRun: true,
 };
+
 export const dataSource = new DataSource(dataSourceOptions);
