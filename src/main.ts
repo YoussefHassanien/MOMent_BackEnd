@@ -26,9 +26,7 @@ const bootstrap = async () => {
       forbidNonWhitelisted: true,
     }),
   );
-  await app.listen(configService.getOrThrow<number>('port') ?? 3000);
 
-  // app.use(cookieParser(configService.getOrThrow<string>('cookiesSecret')));
   if (configService.getOrThrow<string>('environment') === 'dev') {
     app.enableCors();
     const config = new DocumentBuilder()
@@ -52,7 +50,16 @@ const bootstrap = async () => {
     logger.log(
       `Server started at: http://localhost:${port}/${globalPrefix}/v${version}`,
     );
+  } else if (configService.getOrThrow<string>('environment') === 'prod') {
+    app.enableCors({
+      origin: configService.getOrThrow<string>('audience'),
+      methods: configService.getOrThrow<string[]>('methods'),
+      allowedHeaders: configService.getOrThrow<string[]>('allowedHeaders'),
+      credentials: configService.getOrThrow<string>('credentials') === 'true',
+    });
   }
+
+  await app.listen(configService.getOrThrow<number>('port') ?? 3000);
 };
 
 bootstrap().catch((error) => {
