@@ -47,3 +47,9 @@ export enum ReportsExtension {
   PNG = 'png',
   PDF = 'pdf',
 }
+
+export enum Environment {
+  PROD = 'prod',
+  DEV = 'dev',
+  TEST = 'test',
+}

@@ -1,15 +1,19 @@
 import { Injectable, Logger, NestMiddleware } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NextFunction, Request, Response } from 'express';
+import { Environment } from '../constants/enums';
 
 @Injectable()
 export class LoggerMiddleware implements NestMiddleware {
   private readonly logger: Logger;
 
   constructor(private readonly configService: ConfigService) {
-    if (this.configService.getOrThrow<string>('environment') === 'dev')
-      this.logger = new Logger('HTTP');
-    else this.logger = new Logger('HTTPS');
+    if (
+      this.configService.getOrThrow<Environment>('environment') ===
+      Environment.PROD
+    )
+      this.logger = new Logger('HTTPS');
+    else this.logger = new Logger('HTTP');
   }
 
   use(req: Request, res: Response, next: NextFunction): void {

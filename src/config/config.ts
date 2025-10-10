@@ -1,35 +1,42 @@
-export default () => ({
-  environment: process.env.ENVIRONMENT,
-  port: parseInt(process.env.PORT!),
-  version: process.env.VERSION,
-  globalPrefix: process.env.GLOBAL_PREFIX,
-  databaseUrl: process.env.DATABASE_URL,
-  rounds: parseInt(process.env.ROUNDS!),
-  accessTokenSecret: process.env.ACCESS_TOKEN_SECRET,
-  refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET,
-  accessTokenExpirationTime: process.env.ACCESS_TOKEN_EXPIRATION_TIME,
-  refreshTokenExpirtationTime: process.env.REFRESH_TOKEN_EXPIRATION_TIME,
-  issuer: process.env.ISSUER,
-  audience: process.env.AUDIENCE,
-  cookiesSecret: process.env.COOKIES_SECRET,
-  cookiesExpirationTime: parseInt(process.env.COOKIES_EXPIRATION_TIME!),
-  egyptTime: parseInt(process.env.EGYPT_TIME!),
-  smtpHost: process.env.SMTP_HOST,
-  smtpPort: parseInt(process.env.SMTP_PORT!),
-  smtpSecure: process.env.SMTP_SECURE,
-  smtpUser: process.env.SMTP_USER,
-  smtpPass: process.env.SMTP_PASS,
-  cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME,
-  cloudinaryApiKey: process.env.CLOUDINARY_API_KEY,
-  cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET,
-  maxFileSize: parseInt(process.env.MAX_FILE_SIZE!),
-  methods: process.env
-    .METHODS!.split(',')
-    .map((m) => m.trim())
-    .filter(Boolean), //[GET, POST, ...]
-  allowedHeaders: process.env
-    .ALLOWED_HEADERS!.split(',')
-    .map((h) => h.trim())
-    .filter(Boolean), //[Content-Type, Authorization, ...]
-  credentials: process.env.CREDENTIALS,
-});
+import { Environment } from '../constants/enums';
+
+export default () => {
+  const environmentVariables: Record<any, any> = {
+    environment: process.env.ENVIRONMENT!,
+    port: parseInt(process.env.PORT!),
+    version: process.env.VERSION!,
+    globalPrefix: process.env.GLOBAL_PREFIX!,
+    databaseUrl: process.env.DATABASE_URL!,
+    rounds: parseInt(process.env.ROUNDS!),
+    accessTokenSecret: process.env.ACCESS_TOKEN_SECRET!,
+    refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET!,
+    accessTokenExpirationTime: process.env.ACCESS_TOKEN_EXPIRATION_TIME!,
+    refreshTokenExpirtationTime: process.env.REFRESH_TOKEN_EXPIRATION_TIME!,
+    issuer: process.env.ISSUER!,
+    audience: process.env.AUDIENCE!,
+    cookiesSecret: process.env.COOKIES_SECRET!,
+    cookiesExpirationTime: parseInt(process.env.COOKIES_EXPIRATION_TIME!),
+    egyptTime: parseInt(process.env.EGYPT_TIME!),
+    smtpHost: process.env.SMTP_HOST!,
+    smtpPort: parseInt(process.env.SMTP_PORT!),
+    smtpSecure: process.env.SMTP_SECURE! === 'true',
+    smtpUser: process.env.SMTP_USER!,
+    smtpPass: process.env.SMTP_PASS!,
+    cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME!,
+    cloudinaryApiKey: process.env.CLOUDINARY_API_KEY!,
+    cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET!,
+    maxFileSize: parseInt(process.env.MAX_FILE_SIZE!),
+  };
+  if (environmentVariables.environment === Environment.PROD) {
+    environmentVariables.methods = process.env
+      .METHODS!.split(',')
+      .map((m) => m.trim())
+      .filter(Boolean); //[GET, POST, ...]
+    environmentVariables.allowedHeaders = process.env
+      .ALLOWED_HEADERS!.split(',')
+      .map((h) => h.trim())
+      .filter(Boolean); //[Content-Type, Authorization, ...]
+    environmentVariables.credentials = process.env.CREDENTIALS === 'true';
+  }
+  return environmentVariables;
+};

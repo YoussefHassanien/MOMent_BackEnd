@@ -7,13 +7,14 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { AppController } from './app.controller';
 import config from './config/config';
+import { validate } from './config/validation';
 import { dataSourceAsyncOptions } from './database/orm.config';
 import { LoggerMiddleware } from './middlewares/logger.middleware';
 import { VitalSignTypeModule } from './modules/admin/vital-sign-type/vital-sign-type.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { MedicalReportsModule } from './modules/patient/medical-reports/medical-reports.module';
-import { VitalSignsModule } from './modules/patient/vital-signs/vital-signs.module';
 import { SurgeriesModule } from './modules/patient/surgeries/surgeries.module';
+import { VitalSignsModule } from './modules/patient/vital-signs/vital-signs.module';
 import { TasksModule } from './tasks/tasks.module';
 
 @Module({
@@ -21,6 +22,12 @@ import { TasksModule } from './tasks/tasks.module';
     ConfigModule.forRoot({
       isGlobal: true,
       load: [config],
+      cache: true,
+      validate,
+      validationOptions: {
+        allowUnknown: false,
+        abortEarly: true,
+      },
     }),
     TypeOrmModule.forRootAsync(dataSourceAsyncOptions),
     ThrottlerModule.forRoot([
