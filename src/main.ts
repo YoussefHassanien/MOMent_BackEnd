@@ -5,19 +5,21 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { Environment } from './constants/enums';
 
 const bootstrap = async () => {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
-  const port = configService.getOrThrow<number>('port') ?? 3000;
+  const port = configService.getOrThrow<number>('port');
   const globalPrefix = configService.getOrThrow<string>('globalPrefix');
   const version = configService.getOrThrow<string>('version');
+  const environment = configService.getOrThrow<Environment>('environment');
 
-  app.setGlobalPrefix(configService.getOrThrow<string>('globalPrefix'));
+  app.setGlobalPrefix(globalPrefix);
   app.enableVersioning({
     type: VersioningType.URI,
-    defaultVersion: configService.getOrThrow<string>('version'),
+    defaultVersion: version,
   });
   app.use(helmet());
   app.useGlobalPipes(
@@ -27,7 +29,7 @@ const bootstrap = async () => {
     }),
   );
 
-  if (configService.getOrThrow<string>('environment') === 'dev') {
+  if (environment === Environment.DEV) {
     app.enableCors();
     const config = new DocumentBuilder()
       .setTitle('MOMent Project APIs Documentation')
@@ -38,28 +40,23 @@ const bootstrap = async () => {
       .build();
     const documentFactory = () => SwaggerModule.createDocument(app, config);
     SwaggerModule.setup(
-      `${configService.getOrThrow<string>('globalPrefix')}/v${configService.getOrThrow<string>('version')}/docs`,
+      `${globalPrefix}/v${version}/docs`,
       app,
       documentFactory,
     );
-
-    logger.log(
-      `Server docs at: http://localhost:${port}/${globalPrefix}/v${version}/docs`,
-    );
-
-    logger.log(
-      `Server started at: http://localhost:${port}/${globalPrefix}/v${version}`,
-    );
-  } else if (configService.getOrThrow<string>('environment') === 'prod') {
+  } else if (environment === Environment.PROD) {
     app.enableCors({
       origin: configService.getOrThrow<string>('audience'),
       methods: configService.getOrThrow<string[]>('methods'),
       allowedHeaders: configService.getOrThrow<string[]>('allowedHeaders'),
-      credentials: configService.getOrThrow<string>('credentials') === 'true',
+      credentials: configService.getOrThrow<boolean>('credentials'),
     });
   }
 
-  await app.listen(configService.getOrThrow<number>('port') ?? 3000);
+  await app.listen(port);
+
+  const appUrl = await app.getUrl();
+  logger.log(`Server started at: ${appUrl}/${globalPrefix}/v${version}`);
 };
 
 bootstrap().catch((error) => {
