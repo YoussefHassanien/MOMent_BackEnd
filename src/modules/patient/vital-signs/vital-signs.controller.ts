@@ -7,6 +7,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -20,6 +21,7 @@ import { JwtPayload } from 'src/modules/auth/jwt.payload';
 import { Roles } from 'src/modules/auth/roles.decorator';
 import { CreateAgeDto } from './dto/create-age.dto';
 import { CreateVitalSignDto } from './dto/create-vital-sign.dto';
+import { GetVitalSignHistoryDto } from './dto/get-vital-sign-history.dto';
 import { UpdateVitalSignDto } from './dto/update-vital-sign.dto';
 import { VitalSignsService } from './vital-signs.service';
 
@@ -48,6 +50,23 @@ export class VitalSignsController {
   async findAll(@Req() req: Request) {
     const userData = req.user as JwtPayload;
     return await this.vitalSignsService.findAll(userData);
+  }
+
+  @Get('types')
+  async getAllVitalSignTypes() {
+    return await this.vitalSignsService.getAllVitalSignTypes();
+  }
+
+  @Get('history')
+  async getVitalSignHistory(
+    @Req() req: Request,
+    @Query() getVitalSignHistoryDto: GetVitalSignHistoryDto,
+  ) {
+    const userData = req.user as JwtPayload;
+    return await this.vitalSignsService.getVitalSignHistory(
+      getVitalSignHistoryDto,
+      userData,
+    );
   }
 
   @Get(':id')

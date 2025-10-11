@@ -6,11 +6,12 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtPayload } from 'src/modules/auth/jwt.payload';
-import { Repository } from 'typeorm';
+import { Repository, MoreThan } from 'typeorm';
 import { VitalSignsTypes } from '../../../constants/enums';
 import { Patient, VitalSign, VitalSignType } from '../../../database';
 import { CreateAgeDto } from './dto/create-age.dto';
 import { CreateVitalSignDto } from './dto/create-vital-sign.dto';
+import { GetVitalSignHistoryDto } from './dto/get-vital-sign-history.dto';
 import { UpdateVitalSignDto } from './dto/update-vital-sign.dto';
 
 @Injectable()
@@ -207,6 +208,78 @@ export class VitalSignsService {
     }
 
     return vitalSignsResponse;
+  }
+
+  async getVitalSignHistory(
+    getVitalSignHistoryDto: GetVitalSignHistoryDto,
+    userData: JwtPayload,
+  ) {
+    const patient = await this.patientRepository.findOneBy({
+      userId: userData.id,
+    });
+
+    if (!patient)
+      throw new NotFoundException({ message: 'Patient not found!' });
+
+    const vitalSignType = await this.vitalSignTypeRepository.findOneBy({
+      globalId: getVitalSignHistoryDto.typeId,
+    });
+
+    if (!vitalSignType)
+      throw new NotFoundException({ message: 'Vital sign type not found!' });
+
+    const days = getVitalSignHistoryDto.days || 14;
+    const fromDate = new Date();
+    fromDate.setDate(fromDate.getDate() - days);
+
+    const vitalSigns = await this.vitalSignRepository.find({
+      where: {
+        patientId: patient.id,
+        typeId: vitalSignType.id,
+        createdAt: MoreThan(fromDate),
+      },
+      order: {
+        createdAt: 'ASC',
+      },
+    });
+
+    const readings = vitalSigns.map((vitalSign) => {
+      const warning = this.checkWarning(vitalSignType, vitalSign.value);
+
+      return {
+        id: vitalSign.globalId,
+        value: vitalSign.value,
+        createdAt: new Date(
+          new Date(vitalSign.createdAt).getTime() + this.egyptTime,
+        ),
+      };
+    });
+
+    return {
+      type: vitalSignType.type,
+      unit: vitalSignType.unit,
+      minValidValue: vitalSignType.minValidValue,
+      maxValidValue: vitalSignType.maxValidValue,
+      lowValueAlert: vitalSignType.lowValueAlert,
+      highValueAlert: vitalSignType.highValueAlert,
+      period: `${days} days`,
+      totalReadings: readings.length,
+      readings: readings,
+    };
+  }
+
+  async getAllVitalSignTypes() {
+    const vitalSignTypes = await this.vitalSignTypeRepository.find({
+      order: {
+        type: 'ASC',
+      },
+    });
+
+    return vitalSignTypes.map((vitalSignType) => ({
+      typeId: vitalSignType.globalId,
+      type: vitalSignType.type,
+      unit: vitalSignType.unit,
+    }));
   }
 
   findOne(id: string) {
