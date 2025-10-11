@@ -1,7 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MoreThan, Repository } from 'typeorm';
-import { DashboardVitalSignsPeriod } from '../../../constants/enums';
+import {
+  DashboardVitalSignsPeriod,
+  VitalSignsTypes,
+} from '../../../constants/enums';
 import { Patient, VitalSign, VitalSignType } from '../../../database';
 import { JwtPayload } from '../../auth/jwt.payload';
 
@@ -32,11 +35,14 @@ export class DashboardService {
       },
     });
 
-    return vitalSignTypes.map((v) => ({
-      id: v.globalId,
-      type: v.type,
-      unit: v.unit,
-    }));
+    return vitalSignTypes
+      .filter((v) => v.type !== VitalSignsTypes.DIASTOLIC_PRESSURE)
+      .map((v) => ({
+        id: v.globalId,
+        type:
+          v.type === VitalSignsTypes.SYSTOLIC_PRESSURE ? 'PRESSURE' : v.type,
+        unit: v.unit,
+      }));
   }
 
   async findOneVitalSign(
@@ -54,6 +60,7 @@ export class DashboardService {
     const vitalSignType = await this.vitalSignTypeRepository.findOne({
       select: {
         id: true,
+        type: true,
       },
       where: { globalId: id },
     });
@@ -62,56 +69,114 @@ export class DashboardService {
       throw new NotFoundException({ message: 'Vital sign type not found!' });
 
     const startDate = this.convertPeriodIntoDate(period);
+    let vitalSigns: { value: string; createdAt: Date }[] = [];
+    if (
+      vitalSignType.type === VitalSignsTypes.SYSTOLIC_PRESSURE ||
+      vitalSignType.type === VitalSignsTypes.DIASTOLIC_PRESSURE
+    ) {
+      const systolicPressureReadings = await this.vitalSignRepository.find({
+        select: {
+          value: true,
+          createdAt: true,
+        },
+        where: {
+          createdAt: MoreThan(startDate),
+          vitalSignType: {
+            type: VitalSignsTypes.SYSTOLIC_PRESSURE,
+          },
+          patientId: patient.id,
+        },
+        order: {
+          createdAt: 'ASC',
+        },
+      });
+      const diastolicPressureReadings = await this.vitalSignRepository.find({
+        select: {
+          value: true,
+          createdAt: true,
+        },
+        where: {
+          createdAt: MoreThan(startDate),
+          vitalSignType: {
+            type: VitalSignsTypes.DIASTOLIC_PRESSURE,
+          },
+          patientId: patient.id,
+        },
+        order: {
+          createdAt: 'ASC',
+        },
+      });
 
-    const vitalSigns = await this.vitalSignRepository.find({
-      select: {
-        globalId: true,
-        value: true,
-        createdAt: true,
-      },
-      where: {
-        createdAt: MoreThan(startDate),
-        typeId: vitalSignType.id,
-        patientId: patient.id,
-      },
-      order: {
-        createdAt: 'ASC',
-      },
-    });
+      vitalSigns = this.matchPressureReadings(
+        systolicPressureReadings,
+        diastolicPressureReadings,
+      );
+    } else {
+      const rawvitalSigns = await this.vitalSignRepository.find({
+        select: {
+          value: true,
+          createdAt: true,
+        },
+        where: {
+          createdAt: MoreThan(startDate),
+          typeId: vitalSignType.id,
+          patientId: patient.id,
+        },
+        order: {
+          createdAt: 'ASC',
+        },
+      });
 
-    const average = this.calculateVitalSignAverage(vitalSigns);
+      vitalSigns = rawvitalSigns.map((v) => ({
+        value: v.value.toString(),
+        createdAt: v.createdAt,
+      }));
+    }
 
     return {
       readings: vitalSigns.map((v) => ({
-        id: v.globalId,
         value: v.value,
         createdAt: v.createdAt,
       })),
-      average,
     };
   }
 
   private convertPeriodIntoDate = (period: DashboardVitalSignsPeriod) => {
     const weeksNumber = parseInt(period.split(' ')[1]);
-    const now = new Date();
     const startDate = new Date(
-      now.getTime() - weeksNumber * 24 * 60 * 60 * 1000,
+      Date.now() - weeksNumber * 7 * 24 * 60 * 60 * 1000,
     );
     startDate.setHours(0, 0, 0, 0);
-    return new Date(Date.now() - startDate.getTime());
+    return startDate;
   };
 
-  private calculateVitalSignAverage = (vitalSignReadings: VitalSign[]) => {
-    let average = 0;
-    let sum = 0;
+  private matchPressureReadings(
+    systolicReadings: VitalSign[],
+    diastolicReadings: VitalSign[],
+  ) {
+    const matched: { value: string; createdAt: Date }[] = [];
+    const TEN_MINUTES_MS = 10 * 60 * 1000;
 
-    if (vitalSignReadings.length) {
-      vitalSignReadings.forEach((v) => {
-        sum += v.value;
+    for (const systolic of systolicReadings) {
+      // Find diastolic reading within 10 minutes
+      const diastolic = diastolicReadings.find((d) => {
+        const timeDiff = Math.abs(
+          new Date(d.createdAt).getTime() -
+            new Date(systolic.createdAt).getTime(),
+        );
+        return timeDiff <= TEN_MINUTES_MS;
       });
-      average = parseFloat((sum / vitalSignReadings.length).toFixed(2));
-    }
 
-    return average;
-  };
+      if (diastolic) {
+        matched.push({
+          value: `${systolic.value}/${diastolic.value}`,
+          createdAt: systolic.createdAt,
+        });
+        // Remove matched diastolic to avoid duplicate matching
+        const index = diastolicReadings.indexOf(diastolic);
+        diastolicReadings.splice(index, 1);
+      }
+    }
+    return matched;
+  }
 }
