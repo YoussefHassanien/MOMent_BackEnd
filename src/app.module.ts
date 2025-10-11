@@ -16,6 +16,7 @@ import { MedicalReportsModule } from './modules/patient/medical-reports/medical-
 import { SurgeriesModule } from './modules/patient/surgeries/surgeries.module';
 import { VitalSignsModule } from './modules/patient/vital-signs/vital-signs.module';
 import { TasksModule } from './tasks/tasks.module';
+import { DashboardModule } from './modules/patient/dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { TasksModule } from './tasks/tasks.module';
     TasksModule,
     MedicalReportsModule,
     SurgeriesModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

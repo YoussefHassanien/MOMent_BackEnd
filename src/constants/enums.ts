@@ -53,3 +53,18 @@ export enum Environment {
   DEV = 'dev',
   TEST = 'test',
 }
+
+export enum DashboardVitalSignsPeriod {
+  WEEKS_1 = 'Past 1 week',
+  WEEKS_2 = 'Past 2 weeks',
+  WEEKS_3 = 'Past 3 weeks',
+  WEEKS_4 = 'Past 4 weeks',
+  WEEKS_5 = 'Past 5 weeks',
+  WEEKS_6 = 'Past 6 weeks',
+  WEEKS_7 = 'Past 7 weeks',
+  WEEKS_8 = 'Past 8 weeks',
+  WEEKS_9 = 'Past 9 weeks',
+  WEEKS_10 = 'Past 10 weeks',
+  WEEKS_11 = 'Past 11 weeks',
+  WEEKS_12 = 'Past 12 weeks',
+}
