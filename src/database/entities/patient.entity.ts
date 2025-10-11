@@ -19,9 +19,9 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { MedicalReport } from './medical-report.entity';
+import { Surgery } from './surgery.entity';
 import { User } from './user.entity';
 import { VitalSign } from './vital-sign.entity';
-import { Surgery } from './surgery.entity';
 
 @Entity('Patients')
 export class Patient {
