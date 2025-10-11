@@ -6,4 +6,3 @@ export { Surgery } from './entities/surgery.entity';
 export { User } from './entities/user.entity';
 export { VitalSignType } from './entities/vital-sign-type.entity';
 export { VitalSign } from './entities/vital-sign.entity';
-export { Surgery } from './entities/surgery.entity';
