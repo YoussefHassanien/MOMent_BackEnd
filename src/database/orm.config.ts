@@ -14,25 +14,28 @@ export const dataSourceAsyncOptions: TypeOrmModuleAsyncOptions = {
       type: 'postgres',
       url: configService.getOrThrow<string>('databaseUrl'),
       ssl: {
-        rejectUnauthorized: false,
+        rejectUnauthorized: true,
       },
       entities: ['dist/**/*.entity.js'],
       migrations: ['dist/database/migrations/*.js'],
       synchronize: false,
       logging: ['error', 'warn'],
+      migrationsRun: true,
     };
   },
 };
 
-export const dataSourceOptions: DataSourceOptions = {
+const dataSourceOptions: DataSourceOptions = {
   type: 'postgres',
   url: process.env.DATABASE_URL,
   ssl: {
-    rejectUnauthorized: false,
+    rejectUnauthorized: true,
   },
   entities: ['dist/**/*.entity.js'],
   migrations: ['dist/database/migrations/*.js'],
   synchronize: false,
   logging: ['error', 'warn'],
+  migrationsRun: true,
 };
+
 export const dataSource = new DataSource(dataSourceOptions);

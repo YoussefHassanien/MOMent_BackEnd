@@ -5,20 +5,31 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { Environment } from './constants/enums';
 
 const bootstrap = async () => {
   const logger = new Logger('Bootstrap');
-
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
-  app.setGlobalPrefix(configService.getOrThrow<string>('globalPrefix'));
+  const port = configService.getOrThrow<number>('port');
+  const globalPrefix = configService.getOrThrow<string>('globalPrefix');
+  const version = configService.getOrThrow<string>('version');
+  const environment = configService.getOrThrow<Environment>('environment');
+
+  app.setGlobalPrefix(globalPrefix);
   app.enableVersioning({
     type: VersioningType.URI,
-    defaultVersion: configService.getOrThrow<string>('version'),
+    defaultVersion: version,
   });
   app.use(helmet());
-  // app.use(cookieParser(configService.getOrThrow<string>('cookiesSecret')));
-  if (configService.getOrThrow<string>('environment') === 'dev') {
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+      forbidNonWhitelisted: true,
+    }),
+  );
+
+  if (environment === Environment.DEV) {
     app.enableCors();
     const config = new DocumentBuilder()
       .setTitle('MOMent Project APIs Documentation')
@@ -29,30 +40,25 @@ const bootstrap = async () => {
       .build();
     const documentFactory = () => SwaggerModule.createDocument(app, config);
     SwaggerModule.setup(
-      `${configService.getOrThrow<string>('globalPrefix')}/v${configService.getOrThrow<string>('version')}/docs`,
+      `${globalPrefix}/v${version}/docs`,
       app,
       documentFactory,
     );
+  } else if (environment === Environment.PROD) {
+    app.enableCors({
+      origin: configService.getOrThrow<string>('audience'),
+      methods: configService.getOrThrow<string[]>('methods'),
+      allowedHeaders: configService.getOrThrow<string[]>('allowedHeaders'),
+      credentials: configService.getOrThrow<boolean>('credentials'),
+    });
   }
-  app.useGlobalPipes(
-    new ValidationPipe({
-      transform: true,
-      forbidNonWhitelisted: true,
-    }),
-  );
-  await app.listen(configService.getOrThrow<number>('port') ?? 3000);
 
-  const port = configService.getOrThrow<number>('port') ?? 3000;
-  const globalPrefix = configService.getOrThrow<string>('globalPrefix');
-  const version = configService.getOrThrow<string>('version');
+  await app.listen(port);
 
-  logger.log(
-    `Server started at: http://localhost:${port}/${globalPrefix}/v${version}`,
-  );
-  logger.log(
-    `Server docs at: http://localhost:${port}/${globalPrefix}/v${version}/docs`,
-  );
+  const appUrl = await app.getUrl();
+  logger.log(`Server started at: ${appUrl}/${globalPrefix}/v${version}`);
 };
+
 bootstrap().catch((error) => {
   const logger = new Logger('Bootstrap');
   logger.error(

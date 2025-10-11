@@ -1,25 +1,27 @@
 import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  OneToOne,
-  JoinColumn,
-  OneToMany,
-  CreateDateColumn,
-  UpdateDateColumn,
-  Generated,
-} from 'typeorm';
-import { User } from './user.entity';
-import { VitalSign } from './vitalSign.entity';
-import {
-  IsString,
-  IsNotEmpty,
   IsDate,
   IsInt,
-  IsPositive,
-  IsUUID,
+  IsNotEmpty,
   IsOptional,
+  IsPositive,
+  IsString,
+  IsUUID,
 } from 'class-validator';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  Generated,
+  JoinColumn,
+  OneToMany,
+  OneToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { MedicalReport } from './medical-report.entity';
+import { Surgery } from './surgery.entity';
+import { User } from './user.entity';
+import { VitalSign } from './vital-sign.entity';
 
 @Entity('Patients')
 export class Patient {
@@ -60,4 +62,10 @@ export class Patient {
 
   @OneToMany(() => VitalSign, (vs) => vs.patient)
   vitals: VitalSign[];
+
+  @OneToMany(() => MedicalReport, (mr) => mr.patient)
+  medicalReports: MedicalReport[];
+
+  @OneToMany(() => Surgery, (s) => s.patient)
+  surgeries: Surgery[];
 }

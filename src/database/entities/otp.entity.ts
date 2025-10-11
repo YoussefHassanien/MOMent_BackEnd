@@ -1,20 +1,20 @@
 import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  OneToOne,
-  CreateDateColumn,
-  UpdateDateColumn,
-  JoinColumn,
-} from 'typeorm';
-import { User } from './user.entity';
-import {
-  IsNotEmpty,
+  IsBoolean,
   IsDate,
   IsInt,
+  IsNotEmpty,
   IsPositive,
-  IsBoolean,
 } from 'class-validator';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  JoinColumn,
+  OneToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { User } from './user.entity';
 
 @Entity('OTPs')
 export class OTP {

@@ -19,4 +19,17 @@ export default () => ({
   smtpSecure: process.env.SMTP_SECURE,
   smtpUser: process.env.SMTP_USER,
   smtpPass: process.env.SMTP_PASS,
+  cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME,
+  cloudinaryApiKey: process.env.CLOUDINARY_API_KEY,
+  cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET,
+  maxFileSize: parseInt(process.env.MAX_FILE_SIZE!),
+  methods: process.env
+    .METHODS!.split(',')
+    .map((m) => m.trim())
+    .filter(Boolean), //[GET, POST, ...]
+  allowedHeaders: process.env
+    .ALLOWED_HEADERS!.split(',')
+    .map((h) => h.trim())
+    .filter(Boolean), //[Content-Type, Authorization, ...]
+  credentials: process.env.CREDENTIALS,
 });

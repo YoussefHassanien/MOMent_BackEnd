@@ -7,8 +7,10 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtPayload } from 'src/modules/auth/jwt.payload';
 import { Repository, MoreThan } from 'typeorm';
+import { Repository } from 'typeorm';
 import { VitalSignsTypes } from '../../../constants/enums';
 import { Patient, VitalSign, VitalSignType } from '../../../database';
+import { JwtPayload } from '../../../modules/auth/jwt.payload';
 import { CreateAgeDto } from './dto/create-age.dto';
 import { CreateVitalSignDto } from './dto/create-vital-sign.dto';
 import { GetVitalSignHistoryDto } from './dto/get-vital-sign-history.dto';
@@ -348,10 +350,6 @@ export class VitalSignsService {
     };
   }
 
-  remove(id: string) {
-    return `This action removes a vital sign with UUID: ${id}`;
-  }
-
   private validateVitalSignValue(vitalSignType: VitalSignType, value: number) {
     if (
       value > vitalSignType.maxValidValue ||
@@ -436,13 +434,12 @@ export class VitalSignsService {
 
         await this.vitalSignRepository.save(bmiVitalSign);
       } else {
-        await this.vitalSignRepository.upsert(
+        await this.vitalSignRepository.update(
           {
             patientId: patientId,
             typeId: bmiType.id,
-            value: bmi,
           },
-          { conflictPaths: ['patientId', 'typeId'] },
+          { value: bmi },
         );
       }
     }

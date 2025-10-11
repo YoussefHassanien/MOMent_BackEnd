@@ -1,6 +1,8 @@
+export { MedicalReport } from './entities/medical-report.entity';
 export { OTP } from './entities/otp.entity';
 export { Patient } from './entities/patient.entity';
-export { RefreshToken } from './entities/refreshToken.entity';
+export { RefreshToken } from './entities/refresh-token.entity';
+export { Surgery } from './entities/surgery.entity';
 export { User } from './entities/user.entity';
-export { VitalSign } from './entities/vitalSign.entity';
-export { VitalSignType } from './entities/vitalSignType.entity';
+export { VitalSignType } from './entities/vital-sign-type.entity';
+export { VitalSign } from './entities/vital-sign.entity';
