@@ -71,6 +71,8 @@ export class DashboardService {
       },
       where: {
         createdAt: MoreThan(startDate),
+        typeId: vitalSignType.id,
+        patientId: patient.id,
       },
       order: {
         createdAt: 'ASC',
