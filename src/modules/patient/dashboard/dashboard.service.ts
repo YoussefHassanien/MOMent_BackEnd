@@ -139,10 +139,8 @@ export class DashboardService {
     const weeksNumber = parseInt(period.split(' ')[1]);
     const startDate = new Date(
       Date.now() - weeksNumber * 7 * 24 * 60 * 60 * 1000,
-      Date.now() - weeksNumber * 7 * 24 * 60 * 60 * 1000,
     );
     startDate.setHours(0, 0, 0, 0);
-    return startDate;
     return startDate;
   };
 
