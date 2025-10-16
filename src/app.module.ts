@@ -12,6 +12,7 @@ import { dataSourceAsyncOptions } from './database/orm.config';
 import { LoggerMiddleware } from './middlewares/logger.middleware';
 import { VitalSignTypeModule } from './modules/admin/vital-sign-type/vital-sign-type.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { DrugInteractionsModule } from './modules/patient/drug-interactions/drug-interactions.module';
 import { MedicalReportsModule } from './modules/patient/medical-reports/medical-reports.module';
 import { SurgeriesModule } from './modules/patient/surgeries/surgeries.module';
 import { VitalSignsModule } from './modules/patient/vital-signs/vital-signs.module';
@@ -46,6 +47,7 @@ import { DashboardModule } from './modules/patient/dashboard/dashboard.module';
     MedicalReportsModule,
     SurgeriesModule,
     DashboardModule,
+    DrugInteractionsModule,
   ],
   controllers: [AppController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

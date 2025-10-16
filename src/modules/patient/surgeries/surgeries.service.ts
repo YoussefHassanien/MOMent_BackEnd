@@ -25,7 +25,8 @@ export class SurgeriesService {
       userId: userData.id,
     });
 
-    if (!patient) throw new NotFoundException({ message: 'Patient not found!' });
+    if (!patient)
+      throw new NotFoundException({ message: 'Patient not found!' });
 
     await this.surgeryRepository.insert({
       name: createSurgeryDto.name,
@@ -36,11 +37,7 @@ export class SurgeriesService {
     return { message: 'Successfully added surgery' };
   }
 
-  async findAll(
-    userData: JwtPayload,
-    page: number = 1,
-    limit: number = 30,
-  ) {
+  async findAll(userData: JwtPayload, page: number = 1, limit: number = 30) {
     if (page <= 0 || limit <= 0) {
       throw new BadRequestException({
         message: 'Page and limit must be positive integers',
@@ -51,9 +48,12 @@ export class SurgeriesService {
       userId: userData.id,
     });
 
-    if (!patient) throw new NotFoundException({ message: 'Patient not found!' });
+    if (!patient)
+      throw new NotFoundException({ message: 'Patient not found!' });
 
-    const count = await this.surgeryRepository.countBy({ patientId: patient.id });
+    const count = await this.surgeryRepository.countBy({
+      patientId: patient.id,
+    });
 
     const items = await this.surgeryRepository.find({
       where: { patientId: patient.id },
@@ -72,12 +72,17 @@ export class SurgeriesService {
     return { ...response };
   }
 
-  async update(id: string, update: Partial<CreateSurgeryDto>, userData: JwtPayload) {
+  async update(
+    id: string,
+    update: Partial<CreateSurgeryDto>,
+    userData: JwtPayload,
+  ) {
     const patient = await this.patientRepository.findOneBy({
       userId: userData.id,
     });
 
-    if (!patient) throw new NotFoundException({ message: 'Patient not found!' });
+    if (!patient)
+      throw new NotFoundException({ message: 'Patient not found!' });
 
     const record = await this.surgeryRepository.findOneBy({ globalId: id });
 
@@ -95,7 +100,8 @@ export class SurgeriesService {
       userId: userData.id,
     });
 
-    if (!patient) throw new NotFoundException({ message: 'Patient not found!' });
+    if (!patient)
+      throw new NotFoundException({ message: 'Patient not found!' });
 
     const record = await this.surgeryRepository.findOneBy({ globalId: id });
 
@@ -108,4 +114,3 @@ export class SurgeriesService {
     return { message: 'Successfully deleted surgery' };
   }
 }
-

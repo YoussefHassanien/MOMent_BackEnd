@@ -27,7 +27,10 @@ export class SurgeriesController {
   constructor(private readonly surgeriesService: SurgeriesService) {}
 
   @Post()
-  async create(@Body() createSurgeryDto: CreateSurgeryDto, @Req() req: Request) {
+  async create(
+    @Body() createSurgeryDto: CreateSurgeryDto,
+    @Req() req: Request,
+  ) {
     const user = req.user as JwtPayload;
     return await this.surgeriesService.create(createSurgeryDto, user);
   }
@@ -39,7 +42,11 @@ export class SurgeriesController {
     @Query('limit') limit: number = 30,
   ) {
     const user = req.user as JwtPayload;
-    return await this.surgeriesService.findAll(user, Number(page), Number(limit));
+    return await this.surgeriesService.findAll(
+      user,
+      Number(page),
+      Number(limit),
+    );
   }
 
   @Patch(':id')
