@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { MoreThan, Repository } from 'typeorm';
+import { In, MoreThan, Not, Repository } from 'typeorm';
 import {
   DashboardVitalSignsPeriod,
   VitalSignsTypes,
@@ -33,16 +33,26 @@ export class DashboardService {
         globalId: true,
         unit: true,
       },
+      where: {
+        type: Not(
+          In([
+            VitalSignsTypes.DIASTOLIC_PRESSURE,
+            VitalSignsTypes.AGE,
+            VitalSignsTypes.BODY_MASS_INDEX,
+          ]),
+        ),
+      },
     });
 
-    return vitalSignTypes
-      .filter((v) => v.type !== VitalSignsTypes.DIASTOLIC_PRESSURE)
-      .map((v) => ({
-        id: v.globalId,
-        type:
-          v.type === VitalSignsTypes.SYSTOLIC_PRESSURE ? 'PRESSURE' : v.type,
-        unit: v.unit,
-      }));
+    return vitalSignTypes.map((v) => ({
+      id: v.globalId,
+      type:
+        v.type === VitalSignsTypes.SYSTOLIC_PRESSURE
+          ? 'Pressure'
+          : v.type[0].toUpperCase() +
+            v.type.slice(1).replace(/_/g, ' ').toLowerCase(),
+      unit: v.unit,
+    }));
   }
 
   async findOneVitalSign(
@@ -61,6 +71,7 @@ export class DashboardService {
       select: {
         id: true,
         type: true,
+        type: true,
       },
       where: { globalId: id },
     });
@@ -69,43 +80,33 @@ export class DashboardService {
       throw new NotFoundException({ message: 'Vital sign type not found!' });
 
     const startDate = this.convertPeriodIntoDate(period);
-    let vitalSigns: { value: string; createdAt: Date }[] = [];
+    let vitalSigns: { value: string | number; createdAt: Date }[] = [];
     if (
       vitalSignType.type === VitalSignsTypes.SYSTOLIC_PRESSURE ||
       vitalSignType.type === VitalSignsTypes.DIASTOLIC_PRESSURE
     ) {
-      const systolicPressureReadings = await this.vitalSignRepository.find({
-        select: {
-          value: true,
-          createdAt: true,
-        },
-        where: {
-          createdAt: MoreThan(startDate),
-          vitalSignType: {
-            type: VitalSignsTypes.SYSTOLIC_PRESSURE,
-          },
-          patientId: patient.id,
-        },
-        order: {
-          createdAt: 'ASC',
-        },
-      });
-      const diastolicPressureReadings = await this.vitalSignRepository.find({
-        select: {
-          value: true,
-          createdAt: true,
-        },
-        where: {
-          createdAt: MoreThan(startDate),
-          vitalSignType: {
-            type: VitalSignsTypes.DIASTOLIC_PRESSURE,
-          },
-          patientId: patient.id,
-        },
-        order: {
-          createdAt: 'ASC',
-        },
-      });
+      // fetch both in parallel (keeps DB latency minimal)
+      const [systolicPressureReadings, diastolicPressureReadings] =
+        await Promise.all([
+          this.vitalSignRepository.find({
+            select: { value: true, createdAt: true },
+            where: {
+              createdAt: MoreThan(startDate),
+              vitalSignType: { type: VitalSignsTypes.SYSTOLIC_PRESSURE },
+              patientId: patient.id,
+            },
+            order: { createdAt: 'ASC' },
+          }),
+          this.vitalSignRepository.find({
+            select: { value: true, createdAt: true },
+            where: {
+              createdAt: MoreThan(startDate),
+              vitalSignType: { type: VitalSignsTypes.DIASTOLIC_PRESSURE },
+              patientId: patient.id,
+            },
+            order: { createdAt: 'ASC' },
+          }),
+        ]);
 
       vitalSigns = this.matchPressureReadings(
         systolicPressureReadings,
@@ -127,17 +128,11 @@ export class DashboardService {
         },
       });
 
-      vitalSigns = rawvitalSigns.map((v) => ({
-        value: v.value.toString(),
-        createdAt: v.createdAt,
-      }));
+      vitalSigns = rawvitalSigns;
     }
 
     return {
-      readings: vitalSigns.map((v) => ({
-        value: v.value,
-        createdAt: v.createdAt,
-      })),
+      readings: vitalSigns,
     };
   }
 
@@ -145,8 +140,10 @@ export class DashboardService {
     const weeksNumber = parseInt(period.split(' ')[1]);
     const startDate = new Date(
       Date.now() - weeksNumber * 7 * 24 * 60 * 60 * 1000,
+      Date.now() - weeksNumber * 7 * 24 * 60 * 60 * 1000,
     );
     startDate.setHours(0, 0, 0, 0);
+    return startDate;
     return startDate;
   };
 
@@ -157,24 +154,28 @@ export class DashboardService {
     const matched: { value: string; createdAt: Date }[] = [];
     const TEN_MINUTES_MS = 10 * 60 * 1000;
 
-    for (const systolic of systolicReadings) {
-      // Find diastolic reading within 10 minutes
-      const diastolic = diastolicReadings.find((d) => {
-        const timeDiff = Math.abs(
-          new Date(d.createdAt).getTime() -
-            new Date(systolic.createdAt).getTime(),
-        );
-        return timeDiff <= TEN_MINUTES_MS;
-      });
+    let i = 0;
+    let j = 0;
+    while (i < systolicReadings.length && j < diastolicReadings.length) {
+      const s = systolicReadings[i];
+      const d = diastolicReadings[j];
+      const sT = new Date(s.createdAt).getTime();
+      const dT = new Date(d.createdAt).getTime();
+      const diff = sT - dT;
 
-      if (diastolic) {
+      if (Math.abs(diff) <= TEN_MINUTES_MS) {
         matched.push({
-          value: `${systolic.value}/${diastolic.value}`,
-          createdAt: systolic.createdAt,
+          value: `${s.value}/${d.value}`,
+          createdAt: s.createdAt,
         });
-        // Remove matched diastolic to avoid duplicate matching
-        const index = diastolicReadings.indexOf(diastolic);
-        diastolicReadings.splice(index, 1);
+        i++;
+        j++;
+      } else if (diff < 0) {
+        // systolic earlier — advance systolic pointer
+        i++;
+      } else {
+        // diastolic earlier — advance diastolic pointer
+        j++;
       }
     }
     return matched;
