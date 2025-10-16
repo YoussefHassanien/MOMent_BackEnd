@@ -71,7 +71,6 @@ export class DashboardService {
       select: {
         id: true,
         type: true,
-        type: true,
       },
       where: { globalId: id },
     });
