@@ -1,15 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-<<<<<<< HEAD
-import { MoreThan, Repository } from 'typeorm';
-import { DashboardVitalSignsPeriod } from '../../../constants/enums';
-=======
 import { In, MoreThan, Not, Repository } from 'typeorm';
 import {
   DashboardVitalSignsPeriod,
   VitalSignsTypes,
 } from '../../../constants/enums';
->>>>>>> 7a3ee296688d55e85aefeb3764a13e24665cfca8
 import { Patient, VitalSign, VitalSignType } from '../../../database';
 import { JwtPayload } from '../../auth/jwt.payload';
 
@@ -38,8 +33,6 @@ export class DashboardService {
         globalId: true,
         unit: true,
       },
-<<<<<<< HEAD
-=======
       where: {
         type: Not(
           In([
@@ -49,20 +42,15 @@ export class DashboardService {
           ]),
         ),
       },
->>>>>>> 7a3ee296688d55e85aefeb3764a13e24665cfca8
     });
 
     return vitalSignTypes.map((v) => ({
       id: v.globalId,
-<<<<<<< HEAD
-      type: v.type,
-=======
       type:
         v.type === VitalSignsTypes.SYSTOLIC_PRESSURE
           ? 'Pressure'
           : v.type[0].toUpperCase() +
             v.type.slice(1).replace(/_/g, ' ').toLowerCase(),
->>>>>>> 7a3ee296688d55e85aefeb3764a13e24665cfca8
       unit: v.unit,
     }));
   }
@@ -82,10 +70,7 @@ export class DashboardService {
     const vitalSignType = await this.vitalSignTypeRepository.findOne({
       select: {
         id: true,
-<<<<<<< HEAD
-=======
         type: true,
->>>>>>> 7a3ee296688d55e85aefeb3764a13e24665cfca8
       },
       where: { globalId: id },
     });
