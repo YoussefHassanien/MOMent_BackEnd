@@ -23,6 +23,7 @@ export class MedicalReportsService {
     private readonly medicalReportRepository: Repository<MedicalReport>,
     private readonly cloudinaryService: CloudinaryService,
   ) {}
+
   async create(
     file: Express.Multer.File,
     createReportDto: CreateReportDto,

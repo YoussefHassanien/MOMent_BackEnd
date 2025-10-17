@@ -18,6 +18,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { Allergy } from './allergy.entity';
 import { MedicalReport } from './medical-report.entity';
 import { Surgery } from './surgery.entity';
 import { User } from './user.entity';
@@ -68,4 +69,7 @@ export class Patient {
 
   @OneToMany(() => Surgery, (s) => s.patient)
   surgeries: Surgery[];
+
+  @OneToMany(() => Allergy, (a) => a.patient)
+  allergies: Allergy[];
 }

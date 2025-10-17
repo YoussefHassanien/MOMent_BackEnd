@@ -68,3 +68,8 @@ export enum DashboardVitalSignsPeriod {
   WEEKS_11 = 'Past 11 weeks',
   WEEKS_12 = 'Past 12 weeks',
 }
+
+export enum AllergiesTypes {
+  FOOD = 'Food',
+  DRUG = 'Drug',
+}
