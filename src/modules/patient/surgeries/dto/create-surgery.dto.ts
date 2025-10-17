@@ -22,4 +22,3 @@ export class CreateSurgeryDto {
   })
   date: Date;
 }
-
