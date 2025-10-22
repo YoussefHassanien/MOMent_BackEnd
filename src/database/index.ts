@@ -1,4 +1,5 @@
 export { Allergy } from './entities/allergy.entity';
+export { DrugInteraction } from './entities/drug-interaction.entity';
 export { MedicalReport } from './entities/medical-report.entity';
 export { OTP } from './entities/otp.entity';
 export { Patient } from './entities/patient.entity';
