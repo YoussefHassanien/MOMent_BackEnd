@@ -61,8 +61,9 @@ export class FoodDrugAllergiesService {
     if (!patient)
       throw new NotFoundException({ message: 'Patient not found!' });
 
-    const allergiesCount = await this.allergyRepository.countBy({
+    const totalItems = await this.allergyRepository.countBy({
       patientId: patient.id,
+      type,
     });
 
     const allergies = await this.allergyRepository.find({
@@ -78,11 +79,11 @@ export class FoodDrugAllergiesService {
       take: limit,
     });
 
-    const response: PaginationResponse<Allergy> = {
-      items: allergies,
+    const response: PaginationResponse<{ id: string; name: string }> = {
+      items: allergies.map(({ globalId, name }) => ({ id: globalId, name })),
       page,
-      totalItems: allergiesCount,
-      totalPages: Math.ceil(allergiesCount / limit),
+      totalItems,
+      totalPages: Math.ceil(totalItems / limit),
     };
 
     return {
