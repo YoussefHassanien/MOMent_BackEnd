@@ -20,6 +20,11 @@ export enum VitalSignsTypes {
   AGE = 'AGE',
   BODY_MASS_INDEX = 'BODY_MASS_INDEX',
 }
+export enum educationTopicsTypes {
+  video = 'video',
+  article = 'article',
+  image = 'image',
+}
 
 export enum VitalSignUnits {
   MMHG = 'mmHg', // Blood pressure
