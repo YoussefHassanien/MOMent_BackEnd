@@ -17,27 +17,47 @@ export class EducationService {
     private readonly educationRepository: Repository<Education>,
   ) {}
 
-  async create(createEducationDto: CreateEducationDto) {
-    // Check if education resource with the same name already exists
-    const existingEducation = await this.educationRepository.findOne({
-      where: { name: createEducationDto.name },
-    });
+  private generateSlug(title: string): string {
+    return title
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '') // Remove special characters
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+      .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+  }
 
-    if (existingEducation) {
-      throw new ConflictException({
-        message: 'Education resource with this name already exists',
-      });
+  private async ensureUniqueSlug(baseSlug: string): Promise<string> {
+    let slug = baseSlug;
+    let counter = 1;
+
+    while (await this.educationRepository.findOne({ where: { slug } })) {
+      slug = `${baseSlug}-${counter}`;
+      counter++;
     }
 
-    const education = this.educationRepository.create(createEducationDto);
+    return slug;
+  }
+
+  async create(createEducationDto: CreateEducationDto) {
+    const baseSlug = this.generateSlug(createEducationDto.title);
+    const slug = await this.ensureUniqueSlug(baseSlug);
+
+    const education = this.educationRepository.create({
+      ...createEducationDto,
+      slug,
+    });
     const savedEducation = await this.educationRepository.save(education);
 
     return {
       id: savedEducation.globalId,
-      name: savedEducation.name,
+      title: savedEducation.title,
+      slug: savedEducation.slug,
+      description: savedEducation.description,
       category: savedEducation.category,
-      type: savedEducation.type,
-      url: savedEducation.url,
+      content: savedEducation.content,
+      readTime: savedEducation.readTime,
+      publishedAt: savedEducation.publishedAt,
       createdAt: savedEducation.createdAt,
       updatedAt: savedEducation.updatedAt,
     };
@@ -52,10 +72,13 @@ export class EducationService {
 
     return educations.map((education) => ({
       id: education.globalId,
-      name: education.name,
+      title: education.title,
+      slug: education.slug,
+      description: education.description,
       category: education.category,
-      type: education.type,
-      url: education.url,
+      content: education.content,
+      readTime: education.readTime,
+      publishedAt: education.publishedAt,
       createdAt: education.createdAt,
       updatedAt: education.updatedAt,
     }));
@@ -74,10 +97,13 @@ export class EducationService {
 
     return {
       id: education.globalId,
-      name: education.name,
+      title: education.title,
+      slug: education.slug,
+      description: education.description,
       category: education.category,
-      type: education.type,
-      url: education.url,
+      content: education.content,
+      readTime: education.readTime,
+      publishedAt: education.publishedAt,
       createdAt: education.createdAt,
       updatedAt: education.updatedAt,
     };
@@ -93,32 +119,41 @@ export class EducationService {
 
     return educations.map((education) => ({
       id: education.globalId,
-      name: education.name,
+      title: education.title,
+      slug: education.slug,
+      description: education.description,
       category: education.category,
-      type: education.type,
-      url: education.url,
+      content: education.content,
+      readTime: education.readTime,
+      publishedAt: education.publishedAt,
       createdAt: education.createdAt,
       updatedAt: education.updatedAt,
     }));
   }
 
-  async findByType(type: string) {
-    const educations = await this.educationRepository.find({
-      where: { type: type as any },
-      order: {
-        createdAt: 'DESC',
-      },
+  async findBySlug(slug: string) {
+    const education = await this.educationRepository.findOne({
+      where: { slug },
     });
 
-    return educations.map((education) => ({
+    if (!education) {
+      throw new NotFoundException({
+        message: 'Education resource not found',
+      });
+    }
+
+    return {
       id: education.globalId,
-      name: education.name,
+      title: education.title,
+      slug: education.slug,
+      description: education.description,
       category: education.category,
-      type: education.type,
-      url: education.url,
+      content: education.content,
+      readTime: education.readTime,
+      publishedAt: education.publishedAt,
       createdAt: education.createdAt,
       updatedAt: education.updatedAt,
-    }));
+    };
   }
 
   async update(id: string, updateEducationDto: UpdateEducationDto) {
@@ -132,29 +167,32 @@ export class EducationService {
       });
     }
 
-    // Check if updating name to an existing name
-    if (updateEducationDto.name && updateEducationDto.name !== education.name) {
-      const existingEducation = await this.educationRepository.findOne({
-        where: { name: updateEducationDto.name },
-      });
-
-      if (existingEducation) {
-        throw new ConflictException({
-          message: 'Education resource with this name already exists',
-        });
-      }
+    // If title is being updated, regenerate the slug
+    let newSlug: string | undefined;
+    if (
+      updateEducationDto.title &&
+      updateEducationDto.title !== education.title
+    ) {
+      const baseSlug = this.generateSlug(updateEducationDto.title);
+      newSlug = await this.ensureUniqueSlug(baseSlug);
     }
 
     // Update the education resource
     Object.assign(education, updateEducationDto);
+    if (newSlug) {
+      education.slug = newSlug;
+    }
     const updatedEducation = await this.educationRepository.save(education);
 
     return {
       id: updatedEducation.globalId,
-      name: updatedEducation.name,
+      title: updatedEducation.title,
+      slug: updatedEducation.slug,
+      description: updatedEducation.description,
       category: updatedEducation.category,
-      type: updatedEducation.type,
-      url: updatedEducation.url,
+      content: updatedEducation.content,
+      readTime: updatedEducation.readTime,
+      publishedAt: updatedEducation.publishedAt,
       createdAt: updatedEducation.createdAt,
       updatedAt: updatedEducation.updatedAt,
     };

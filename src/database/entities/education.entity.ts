@@ -1,8 +1,9 @@
 import {
   IsDate,
-  IsEnum,
   IsInt,
   IsNotEmpty,
+  IsObject,
+  IsOptional,
   IsPositive,
   IsString,
   IsUUID,
@@ -15,7 +16,16 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { educationTopicsTypes } from '../../constants/enums';
+
+export type TopicContentType = 'text' | 'image' | 'video';
+
+export interface TopicContent {
+  type: TopicContentType;
+  text?: string; // For text and image types
+  imageUrl?: string; // For image type
+  videoUrl?: string; // For video type
+  sections?: { heading: string; content: string }[]; // For structured text content
+}
 
 @Entity('education')
 export class Education {
@@ -33,21 +43,37 @@ export class Education {
   @Column()
   @IsString()
   @IsNotEmpty()
-  name: string;
+  title: string;
+
+  @Column({ unique: true })
+  @IsString()
+  @IsNotEmpty()
+  slug: string;
+
+  @Column()
+  @IsString()
+  @IsNotEmpty()
+  description: string;
 
   @Column()
   @IsString()
   @IsNotEmpty()
   category: string;
 
-  @Column({ type: 'enum', enum: educationTopicsTypes })
-  @IsEnum(educationTopicsTypes)
-  type: educationTopicsTypes;
+  @Column({ type: 'json' })
+  @IsObject()
+  content: TopicContent;
 
-  @Column()
+  @Column({ nullable: true })
+  @IsInt()
+  @IsPositive()
+  @IsOptional()
+  readTime?: number; // in minutes
+
+  @Column({ nullable: true })
   @IsString()
-  @IsNotEmpty()
-  url: string;
+  @IsOptional()
+  publishedAt?: string;
 
   @CreateDateColumn()
   @IsDate()
