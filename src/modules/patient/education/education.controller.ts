@@ -3,9 +3,8 @@ import {
   Get,
   Post,
   Body,
-  Patch,
-  Param,
   Delete,
+  Param,
   ParseUUIDPipe,
   Query,
   UseGuards,
@@ -14,52 +13,99 @@ import { Role } from '../../../constants/enums';
 import { AuthenticationGuard, AuthorizationGuard } from '../../auth/auth.guard';
 import { Roles } from '../../auth/roles.decorator';
 import { EducationService } from './education.service';
-import { CreateEducationDto } from './dto/create-education.dto';
-import { UpdateEducationDto } from './dto/update-education.dto';
+import { CreateCategoryDto } from './dto/create-category.dto';
+import { CreateSubCategoryDto } from './dto/create-subcategory.dto';
+import { CreateContentDto } from './dto/create-content.dto';
 
-@Controller('patient/education')
+@Controller('education')
 export class EducationController {
   constructor(private readonly educationService: EducationService) {}
 
-  @Post()
+  // CATEGORY ENDPOINTS
+
+  @Post('categories')
   @UseGuards(AuthenticationGuard, AuthorizationGuard)
   @Roles(Role.ADMIN)
-  async create(@Body() createEducationDto: CreateEducationDto) {
-    return await this.educationService.create(createEducationDto);
+  async createCategory(@Body() createCategoryDto: CreateCategoryDto) {
+    return await this.educationService.createCategory(createCategoryDto);
   }
 
-  @Get()
-  async findAll(@Query('category') category?: string) {
-    if (category) {
-      return await this.educationService.findByCategory(category);
-    }
-    return await this.educationService.findAll();
+  @Get('categories')
+  async getAllCategories(@Query('lang') lang?: 'en' | 'ar') {
+    return await this.educationService.getAllCategories(lang || 'en');
   }
 
-  @Get('slug/:slug')
-  async findBySlug(@Param('slug') slug: string) {
-    return await this.educationService.findBySlug(slug);
-  }
-
-  @Get(':id')
-  async findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return await this.educationService.findOne(id);
-  }
-
-  @Patch(':id')
-  @UseGuards(AuthenticationGuard, AuthorizationGuard)
-  @Roles(Role.ADMIN)
-  async update(
+  @Get('categories/:id')
+  async getCategoryById(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() updateEducationDto: UpdateEducationDto,
+    @Query('lang') lang?: 'en' | 'ar',
   ) {
-    return await this.educationService.update(id, updateEducationDto);
+    return await this.educationService.getCategoryById(id, lang || 'en');
   }
 
-  @Delete(':id')
+  @Get('categories/:id/subcategories')
+  async getSubCategoriesByCategory(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query('lang') lang?: 'en' | 'ar',
+  ) {
+    return await this.educationService.getSubCategoriesByCategory(
+      id,
+      lang || 'en',
+    );
+  }
+
+  @Delete('categories/:id')
   @UseGuards(AuthenticationGuard, AuthorizationGuard)
   @Roles(Role.ADMIN)
-  async remove(@Param('id', ParseUUIDPipe) id: string) {
-    return await this.educationService.remove(id);
+  async deleteCategory(@Param('id', ParseUUIDPipe) id: string) {
+    return await this.educationService.deleteCategory(id);
+  }
+
+  // SUBCATEGORY ENDPOINTS
+
+  @Post('subcategories')
+  @UseGuards(AuthenticationGuard, AuthorizationGuard)
+  @Roles(Role.ADMIN)
+  async createSubCategory(@Body() createSubCategoryDto: CreateSubCategoryDto) {
+    return await this.educationService.createSubCategory(createSubCategoryDto);
+  }
+
+  @Get('subcategories/:id')
+  async getSubCategoryById(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query('lang') lang?: 'en' | 'ar',
+  ) {
+    return await this.educationService.getSubCategoryById(id, lang || 'en');
+  }
+
+  @Delete('subcategories/:id')
+  @UseGuards(AuthenticationGuard, AuthorizationGuard)
+  @Roles(Role.ADMIN)
+  async deleteSubCategory(@Param('id', ParseUUIDPipe) id: string) {
+    return await this.educationService.deleteSubCategory(id);
+  }
+
+  // CONTENT ENDPOINTS
+
+  @Post('content')
+  @UseGuards(AuthenticationGuard, AuthorizationGuard)
+  @Roles(Role.ADMIN)
+  async createContent(@Body() createContentDto: CreateContentDto) {
+    return await this.educationService.createContent(createContentDto);
+  }
+
+  @Get('content/:id')
+  async getContentById(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query('lang') lang?: 'en' | 'ar',
+  ) {
+    return await this.educationService.getContentById(id, lang || 'en');
+  }
+
+  @Delete('content/:id')
+  @UseGuards(AuthenticationGuard, AuthorizationGuard)
+  @Roles(Role.ADMIN)
+  async deleteContent(@Param('id', ParseUUIDPipe) id: string) {
+    return await this.educationService.deleteContent(id);
   }
 }
