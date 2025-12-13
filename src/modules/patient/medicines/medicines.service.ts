@@ -100,7 +100,7 @@ export class MedicinesService {
     // otherwise consider generally safe -> CAUTION (Yellow) per acceptance
     return {
       canSave: true,
-      label: MedicationSafetyLabel.CAUTION,
+      label: MedicationSafetyLabel.SAFE,
       message: `Use carefully. Tap 'ⓘ Safety' for details.`,
     };
   }
