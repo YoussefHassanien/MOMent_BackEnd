@@ -20,6 +20,7 @@ import { VitalSignsModule } from './modules/patient/vital-signs/vital-signs.modu
 import { TasksModule } from './tasks/tasks.module';
 import { FoodDrugAllergiesModule } from './modules/patient/food-drug-allergies/food-drug-allergies.module';
 import { EducationModule } from './modules/patient/education/education.module';
+import { MedicinesModule } from './modules/patient/medicines/medicines.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { EducationModule } from './modules/patient/education/education.module';
     DrugInteractionsModule,
     FoodDrugAllergiesModule,
     EducationModule,
+    MedicinesModule,
   ],
   controllers: [AppController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
