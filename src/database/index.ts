@@ -1,6 +1,5 @@
 export { Allergy } from './entities/allergy.entity';
 export { DrugInteraction } from './entities/drug-interaction.entity';
-export { Education } from './entities/education.entity';
 export { EducationCategory } from './entities/education-category.entity';
 export { EducationSubCategory } from './entities/education-subcategory.entity';
 export { EducationContent } from './entities/education-content.entity';

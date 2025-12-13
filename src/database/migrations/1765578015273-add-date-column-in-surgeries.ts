@@ -14,18 +14,6 @@ export class AddDateColumnInSurgeries1765578015273
       `DROP INDEX "public"."IDX_patient_medicines_patient"`,
     );
     await queryRunner.query(
-      `ALTER TABLE "Surgeries" ADD "date" date NOT NULL DEFAULT '2000-01-01'`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "Surgeries" ALTER COLUMN "date" DROP DEFAULT`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "DrugInteractions" ADD "category" "public"."DrugInteractions_category_enum" NOT NULL DEFAULT 'A'`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "DrugInteractions" ALTER COLUMN "category" DROP DEFAULT`,
-    );
-    await queryRunner.query(
       `ALTER TABLE "Medicines" ADD CONSTRAINT "UQ_16e16f73bb4f2071cd06f482130" UNIQUE ("globalId")`,
     );
     await queryRunner.query(
@@ -94,10 +82,6 @@ export class AddDateColumnInSurgeries1765578015273
     await queryRunner.query(
       `ALTER TABLE "Medicines" DROP CONSTRAINT "UQ_16e16f73bb4f2071cd06f482130"`,
     );
-    await queryRunner.query(
-      `ALTER TABLE "DrugInteractions" DROP COLUMN "category"`,
-    );
-    await queryRunner.query(`ALTER TABLE "Surgeries" DROP COLUMN "date"`);
     await queryRunner.query(
       `CREATE INDEX "IDX_patient_medicines_patient" ON "PatientMedicines" ("patientId") `,
     );
