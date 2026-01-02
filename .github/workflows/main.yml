@@ -47,9 +47,9 @@ jobs:
           host: ${{ secrets.AZURE_VM_IP }}
           username: ${{ secrets.AZURE_VM_USER }}
           key: ${{ secrets.AZURE_VM_SSH_KEY }}
-          source: "dist/,package.json,package-lock.json"
-          target: "~/app"
-          
+          source: 'dist/,package.json,package-lock.json'
+          target: '~/app'
+
       - name: Restart App
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -57,9 +57,8 @@ jobs:
           username: ${{ secrets.AZURE_VM_USER }}
           key: ${{ secrets.AZURE_VM_SSH_KEY }}
           script: |
-            export NVM_DIR="$HOME/.nvm"
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
             cd ~/app
-            npm ci --omit=dev
-            pm2 delete moment-backend || true
-            pm2 start dist/main.js --name "moment-backend"    
+            npm install --omit=dev
+            npm audit fix
+            fuser -k 4000/tcp || true
+            node dist/main.js
