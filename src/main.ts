@@ -9,7 +9,12 @@ import { Environment } from './constants/enums';
 
 const bootstrap = async () => {
   const logger = new Logger('Bootstrap');
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    logger:
+      process.env.ENVIRONMENT === Environment.PROD
+        ? ['warn', 'error', 'fatal']
+        : ['debug', 'error', 'fatal', 'log', 'verbose', 'warn'],
+  });
   const configService = app.get(ConfigService);
   const port = configService.getOrThrow<number>('port');
   const globalPrefix = configService.getOrThrow<string>('globalPrefix');
