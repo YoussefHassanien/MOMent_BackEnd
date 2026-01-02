@@ -1,55 +1,63 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-
-name: Build and deploy Node.js app to Azure Web App - MOMent
+name: Deploy to Azure
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
-      ['src/**', 'package.json', 'package-lock.json', '.github/workflows/**']
+      [
+        'src/**',
+        '.github/workflows/main.yml',
+        'package.json',
+        'package-lock.json',
+      ]
+
+  workflow_dispatch:
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read #This is required for actions/checkout
-
     steps:
-      - uses: actions/checkout@v6.0.1
+      - name: Checkout Code
+        uses: actions/checkout@v6
 
-      - name: Set up Node.js version
-        uses: actions/setup-node@v6.1.0
+      - name: Setup Node
+        uses: actions/setup-node@v6
         with:
-          node-version: '22.x'
+          node-version: '24.x'
 
-      - name: npm install, build, and test
-        run: |
-          npm install
-          npm run build
+      - name: Install Dependencies
+        run: npm ci
 
-      - name: Upload artifact for deployment job
-        uses: actions/upload-artifact@v6.0.0
+      - name: Build
+        run: npm run build
+
+      - name: Delete old files
+        uses: appleboy/ssh-action@v1
         with:
-          name: node-app
-          path: ./dist
+          host: ${{ secrets.AZURE_VM_IP }}
+          username: ${{ secrets.AZURE_VM_USER }}
+          key: ${{ secrets.AZURE_VM_SSH_KEY }}
+          script: |
+            cd ~/app
+            rm -rf dist package.json package-lock.json
 
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-
-    steps:
-      - name: Download artifact from build job
-        uses: actions/download-artifact@v7.0.0
+      - name: Copy files to VM
+        uses: appleboy/scp-action@v1
         with:
-          name: node-app
-
-      - name: 'Deploy to Azure Web App'
-        id: deploy-to-webapp
-        uses: azure/webapps-deploy@v3.0.6
+          host: ${{ secrets.AZURE_VM_IP }}
+          username: ${{ secrets.AZURE_VM_USER }}
+          key: ${{ secrets.AZURE_VM_SSH_KEY }}
+          source: "dist/,package.json,package-lock.json"
+          target: "~/app"
+          
+      - name: Restart App
+        uses: appleboy/ssh-action@v1.0.3
         with:
-          app-name: 'MOMent'
-          slot-name: 'Production'
-          package: .
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_490E00F7831B4C9D943B39ED7CDBEB2A }}
+          host: ${{ secrets.AZURE_VM_IP }}
+          username: ${{ secrets.AZURE_VM_USER }}
+          key: ${{ secrets.AZURE_VM_SSH_KEY }}
+          script: |
+            cd ~/app
+            npm ci --omit=dev
+            pm2 delete moment-backend || true
+            pm2 start dist/main.js --name "moment-backend"    
