@@ -13,6 +13,8 @@ import {
   Entity,
   Generated,
   Index,
+  JoinColumn,
+  ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,

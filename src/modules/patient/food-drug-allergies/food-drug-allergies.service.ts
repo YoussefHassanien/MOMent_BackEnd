@@ -31,6 +31,15 @@ export class FoodDrugAllergiesService {
     if (!patient)
       throw new NotFoundException({ message: 'Patient not found!' });
 
+    const existingAllergy = await this.allergyRepository.findOneBy({
+      name: createFoodDrugAllergyDto.name,
+      patientId: patient.id,
+    });
+
+    if (existingAllergy) {
+      throw new BadRequestException({ message: 'Allergy already exists' });
+    }
+
     const allergy = this.allergyRepository.create({
       name: createFoodDrugAllergyDto.name,
       type: createFoodDrugAllergyDto.type,
