@@ -23,7 +23,7 @@ import { UpdatePatientMedicineDto } from './dto/update-patient-medicine.dto';
 
 @Controller('patient/medicines')
 @UseGuards(AuthenticationGuard, AuthorizationGuard)
-@Roles(Role.PATIENT)
+@Roles(Role.PATIENT, Role.ADMIN)
 export class MedicinesController {
   constructor(private readonly medicinesService: MedicinesService) {}
 

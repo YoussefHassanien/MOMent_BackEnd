@@ -1,0 +1,66 @@
+name: Deploy to Azure
+
+on:
+  push:
+    branches: [main]
+    paths:
+      [
+        'src/**',
+        '.github/workflows/main.yml',
+        'package.json',
+        'package-lock.json',
+      ]
+
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24.x'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Delete old files
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.AZURE_VM_IP }}
+          username: ${{ secrets.AZURE_VM_USER }}
+          key: ${{ secrets.AZURE_VM_SSH_KEY }}
+          script: |
+            cd ~/app
+            rm -rf dist package.json package-lock.json
+
+      - name: Copy files to VM
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.AZURE_VM_IP }}
+          username: ${{ secrets.AZURE_VM_USER }}
+          key: ${{ secrets.AZURE_VM_SSH_KEY }}
+          source: 'dist/,package.json,package-lock.json'
+          target: '~/app'
+
+      - name: Restart App
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.AZURE_VM_IP }}
+          username: ${{ secrets.AZURE_VM_USER }}
+          key: ${{ secrets.AZURE_VM_SSH_KEY }}
+          script: |
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            cd ~/app
+            npm install --omit=dev
+            npm audit fix
+            pm2 delete moment-backend || true
+            pm2 start dist/main.js --name "moment-backend"
