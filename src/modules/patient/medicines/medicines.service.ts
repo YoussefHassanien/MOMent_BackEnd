@@ -1,9 +1,16 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, ILike } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import { Medicine } from '../../../database/entities/medicine.entity';
+import {
+  MedicationSafetyLabel,
+  PatientMedicine,
+} from '../../../database/entities/patient-medicine.entity';
 import { Patient } from '../../../database/entities/patient.entity';
-import { PatientMedicine, MedicationSafetyLabel } from '../../../database/entities/patient-medicine.entity';
 import { JwtPayload } from '../../auth/jwt.payload';
 import { CreatePatientMedicineDto } from './dto/create-patient-medicine.dto';
 import { UpdatePatientMedicineDto } from './dto/update-patient-medicine.dto';
@@ -20,7 +27,8 @@ export class MedicinesService {
   ) {}
 
   async search(query: string, page = 1, limit = 30) {
-    if (page <= 0 || limit <= 0) throw new BadRequestException('Page and limit must be positive');
+    if (page <= 0 || limit <= 0)
+      throw new BadRequestException('Page and limit must be positive');
 
     const [items, total] = await this.medicineRepository.findAndCount({
       where: { name: ILike(`%${query}%`) },
@@ -31,7 +39,11 @@ export class MedicinesService {
     });
 
     return {
-      items: items.map((m) => ({ id: m.globalId, name: m.name, category: m.category })),
+      items: items.map((m) => ({
+        id: m.globalId,
+        name: m.name,
+        category: m.category,
+      })),
       page,
       totalItems: total,
       totalPages: Math.ceil(total / limit),
@@ -44,7 +56,11 @@ export class MedicinesService {
     for (const a of patientAllergies) {
       const an = (a || '').toLowerCase();
       if (!an) continue;
-      if (name.includes(an) || an.includes(name) || (medicine.contraindications || '').toLowerCase().includes(an)) {
+      if (
+        name.includes(an) ||
+        an.includes(name) ||
+        (medicine.contraindications || '').toLowerCase().includes(an)
+      ) {
         return {
           canSave: false,
           label: MedicationSafetyLabel.DANGER,
@@ -58,8 +74,15 @@ export class MedicinesService {
     const third = (medicine.pregnancyThird || '').toLowerCase();
     const bf = (medicine.breastfeeding || '').toLowerCase();
 
-    const contraKeywords = ['contraindicated', 'avoid', 'not allowed', 'not recommended', 'danger'];
-    const containsContra = (s: string) => contraKeywords.some((k) => s.includes(k));
+    const contraKeywords = [
+      'contraindicated',
+      'avoid',
+      'not allowed',
+      'not recommended',
+      'danger',
+    ];
+    const containsContra = (s: string) =>
+      contraKeywords.some((k) => s.includes(k));
 
     const unsafeFirst = first && containsContra(first);
     const unsafeSecond = second && containsContra(second);
@@ -105,18 +128,30 @@ export class MedicinesService {
     };
   }
 
-  async createPatientMedicine(dto: CreatePatientMedicineDto, userData: JwtPayload) {
-    const patient = await this.patientRepository.findOneBy({ userId: userData.id });
-    if (!patient) throw new NotFoundException({ message: 'Patient not found!' });
+  async createPatientMedicine(
+    dto: CreatePatientMedicineDto,
+    userData: JwtPayload,
+  ) {
+    const patient = await this.patientRepository.findOneBy({
+      userId: userData.id,
+    });
+    if (!patient)
+      throw new NotFoundException({ message: 'Patient not found!' });
 
-    const medicine = await this.medicineRepository.findOneBy({ globalId: dto.medicineId });
-    if (!medicine) throw new NotFoundException({ message: 'Medicine not found!' });
+    const medicine = await this.medicineRepository.findOneBy({
+      globalId: dto.medicineId,
+    });
+    if (!medicine)
+      throw new NotFoundException({ message: 'Medicine not found!' });
 
     // get patient allergies names
-    const allergies = (await this.patientRepository.findOne({
-      where: { id: patient.id },
-      relations: ['allergies'],
-    }))?.allergies?.map((a) => a.name) || [];
+    const allergies =
+      (
+        await this.patientRepository.findOne({
+          where: { id: patient.id },
+          relations: ['allergies'],
+        })
+      )?.allergies?.map((a) => a.name) || [];
 
     const safety = this.evaluateSafety(medicine, allergies);
     if (!safety.canSave) {
@@ -147,8 +182,11 @@ export class MedicinesService {
   }
 
   async listPatientMedicines(userData: JwtPayload, page = 1, limit = 50) {
-    const patient = await this.patientRepository.findOneBy({ userId: userData.id });
-    if (!patient) throw new NotFoundException({ message: 'Patient not found!' });
+    const patient = await this.patientRepository.findOneBy({
+      userId: userData.id,
+    });
+    if (!patient)
+      throw new NotFoundException({ message: 'Patient not found!' });
 
     const [items, total] = await this.patientMedicineRepository.findAndCount({
       where: { patientId: patient.id },
@@ -177,12 +215,22 @@ export class MedicinesService {
     };
   }
 
-  async updatePatientMedicine(id: string, dto: UpdatePatientMedicineDto, userData: JwtPayload) {
-    const patient = await this.patientRepository.findOneBy({ userId: userData.id });
-    if (!patient) throw new NotFoundException({ message: 'Patient not found!' });
+  async updatePatientMedicine(
+    id: string,
+    dto: UpdatePatientMedicineDto,
+    userData: JwtPayload,
+  ) {
+    const patient = await this.patientRepository.findOneBy({
+      userId: userData.id,
+    });
+    if (!patient)
+      throw new NotFoundException({ message: 'Patient not found!' });
 
-    const pm = await this.patientMedicineRepository.findOne({ where: { globalId: id, patientId: patient.id } });
-    if (!pm) throw new NotFoundException({ message: 'Patient medicine not found!' });
+    const pm = await this.patientMedicineRepository.findOne({
+      where: { globalId: id, patientId: patient.id },
+    });
+    if (!pm)
+      throw new NotFoundException({ message: 'Patient medicine not found!' });
 
     if (dto.dosage) pm.dosage = dto.dosage;
     if (dto.scheduleTimes) pm.scheduleTimes = dto.scheduleTimes.join(',');
@@ -194,11 +242,18 @@ export class MedicinesService {
   }
 
   async removePatientMedicine(id: string, userData: JwtPayload) {
-    const patient = await this.patientRepository.findOneBy({ userId: userData.id });
-    if (!patient) throw new NotFoundException({ message: 'Patient not found!' });
+    const patient = await this.patientRepository.findOneBy({
+      userId: userData.id,
+    });
+    if (!patient)
+      throw new NotFoundException({ message: 'Patient not found!' });
 
-    const pm = await this.patientMedicineRepository.findOneBy({ globalId: id, patientId: patient.id });
-    if (!pm) throw new NotFoundException({ message: 'Patient medicine not found!' });
+    const pm = await this.patientMedicineRepository.findOneBy({
+      globalId: id,
+      patientId: patient.id,
+    });
+    if (!pm)
+      throw new NotFoundException({ message: 'Patient medicine not found!' });
 
     await this.patientMedicineRepository.delete(pm.id);
     return { message: 'Successfully deleted medicine' };

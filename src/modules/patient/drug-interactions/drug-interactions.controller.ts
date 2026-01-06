@@ -1,12 +1,25 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  Put,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { Role } from '../../../constants/enums';
 import { AuthenticationGuard, AuthorizationGuard } from '../../auth/auth.guard';
 import { Roles } from '../../auth/roles.decorator';
+import { DrugInteractionsService } from './drug-interactions.service';
+import {
+  CreateDrugInteractionDto,
+  UpdateDrugInteractionDto,
+} from './dto/admin-drug-interactions.dto';
 import { CheckInteractionsDto } from './dto/check-interactions.dto';
 import { CheckInteractionsResponseDto } from './dto/interaction-result.dto';
-import { CreateDrugInteractionDto, UpdateDrugInteractionDto } from './dto/admin-drug-interactions.dto';
-import { DrugInteractionsService } from './drug-interactions.service';
 
 @UseGuards(AuthenticationGuard, AuthorizationGuard)
 @Roles(Role.PATIENT)

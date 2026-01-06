@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString, IsUUID, IsArray, ArrayNotEmpty } from 'class-validator';
+import {
+  ArrayNotEmpty,
+  IsArray,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 
 export class CreatePatientMedicineDto {
   @ApiProperty({ description: 'Medicine global id from medicines database' })
@@ -12,12 +19,17 @@ export class CreatePatientMedicineDto {
   @IsNotEmpty()
   dosage: string;
 
-  @ApiProperty({ description: 'Array of schedule times as strings, e.g. ["8 AM","8 PM"]' })
+  @ApiProperty({
+    description: 'Array of schedule times as strings, e.g. ["8 AM","8 PM"]',
+  })
   @IsArray()
   @ArrayNotEmpty()
   scheduleTimes: string[];
 
-  @ApiProperty({ description: 'Duration (optional) e.g. 7 days', required: false })
+  @ApiProperty({
+    description: 'Duration (optional) e.g. 7 days',
+    required: false,
+  })
   @IsOptional()
   @IsString()
   duration?: string;

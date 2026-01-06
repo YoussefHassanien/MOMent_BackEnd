@@ -20,7 +20,7 @@ import { Roles } from '../../auth/roles.decorator';
 import { CreateFoodDrugAllergyDto } from './dto/create-food-drug-allergy.dto';
 import { FoodDrugAllergiesService } from './food-drug-allergies.service';
 
-@Controller('patient/food-drug-allergies')
+@Controller('food-drug-allergies')
 @UseGuards(AuthenticationGuard, AuthorizationGuard)
 @Roles(Role.PATIENT)
 export class FoodDrugAllergiesController {
