@@ -137,7 +137,7 @@ export class MedicinesService {
   private async checkDrugInteraction(
     drugs: string[],
     newDrug: string,
-  ): Promise<boolean> {
+  ): Promise<{ isDrugInteractionExists: boolean; drug?: string }> {
     for (let i = 0; i < drugs.length; i++) {
       // Check both combinations since the data might be stored in either order
       const interaction = await this.drugInteractionRepository.findOne({
@@ -153,10 +153,10 @@ export class MedicinesService {
         interaction.category === InteractionCategory.D ||
         interaction.category === InteractionCategory.X
       )
-        return true;
+        return { isDrugInteractionExists: true, drug: drugs[i] };
     }
 
-    return false;
+    return { isDrugInteractionExists: true };
   }
 
   async createPatientMedicine(
@@ -205,14 +205,14 @@ export class MedicinesService {
 
     const patientMedicineNames = patientMedicines.map((pm) => pm.medicine.name);
 
-    const isDrugInteractionExists = await this.checkDrugInteraction(
+    const drugInteraction = await this.checkDrugInteraction(
       patientMedicineNames,
       medicine.name,
     );
 
-    if (isDrugInteractionExists) {
+    if (drugInteraction.isDrugInteractionExists) {
       throw new BadRequestException({
-        message: "This drug can't be taken with the existing drugs",
+        message: `This drug can't be taken with ${drugInteraction.drug}`,
       });
     }
 

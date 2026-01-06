@@ -21,11 +21,6 @@ export class TasksService {
     private readonly emailService: EmailService,
   ) {}
 
-  // @Timeout(5000) // 5 seconds after server startup
-  // private async runOnStartup() {
-  //   await this.deleteExpiredOtps();
-  // }
-
   @Cron(CronExpression.EVERY_DAY_AT_4AM, {
     name: 'deleteExpiredOtps',
     timeZone: 'Africa/Cairo',
@@ -52,11 +47,11 @@ export class TasksService {
    * Medication reminder cron job - runs every 15 minutes
    * Checks if any medications are due and sends email reminders
    */
-  @Cron('0,15 * * * *', {
+  @Cron(CronExpression.EVERY_10_MINUTES, {
     name: 'sendMedicationReminders',
     timeZone: 'Africa/Cairo',
   })
-  async sendMedicationReminders() {
+  private async sendMedicationReminders() {
     this.logger.log('Starting medication reminder check...');
 
     try {
@@ -209,14 +204,5 @@ export class TasksService {
       return `${hour}${period}`;
     }
     return cleaned;
-  }
-
-  /**
-   * Manual trigger for testing - can be called via a test endpoint
-   */
-  async triggerMedicationRemindersManually(): Promise<{ message: string }> {
-    this.logger.log('Manually triggering medication reminders...');
-    await this.sendMedicationReminders();
-    return { message: 'Medication reminders triggered manually' };
   }
 }
