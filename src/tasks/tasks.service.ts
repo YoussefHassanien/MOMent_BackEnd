@@ -44,7 +44,7 @@ export class TasksService {
   }
 
   /**
-   * Medication reminder cron job - runs every 15 minutes
+   * Medication reminder cron job - runs every 10 minutes
    * Checks if any medications are due and sends email reminders
    */
   @Cron(CronExpression.EVERY_10_MINUTES, {
@@ -86,6 +86,7 @@ export class TasksService {
         number,
         {
           patient: Patient;
+          medicineIds: number[];
           medications: {
             name: string;
             dosage: string;
@@ -96,29 +97,48 @@ export class TasksService {
         }
       >();
 
+      const currentHourNormalized = this.normalizeTimeToHour(currentHour);
+
       for (const pm of patientMedicines) {
         if (!pm.startDate || !pm.endDate || !pm.patient) continue;
 
-        if (now < pm.startDate || now > pm.endDate) continue;
+        // Check if medication is within valid date range
+        const today = new Date(now);
+        today.setHours(0, 0, 0, 0);
+        const startDate = new Date(pm.startDate);
+        startDate.setHours(0, 0, 0, 0);
+        const endDate = new Date(pm.endDate);
+        endDate.setHours(23, 59, 59, 999);
+
+        if (today < startDate || today > endDate) continue;
 
         const scheduleTimes = pm.scheduleTimes.split(',').map((t) => t.trim());
 
-        // Check if any scheduled time matches current hour
+        // Check if any scheduled time matches current hour (exact match)
         const matchingTimes = scheduleTimes.filter((scheduleTime) => {
-          // Normalize both times for comparison
-          const normalizedSchedule = this.normalizeTime(scheduleTime);
-          const normalizedCurrent = this.normalizeTime(currentHour);
-          return normalizedSchedule <= normalizedCurrent;
+          const scheduleHour = this.normalizeTimeToHour(scheduleTime);
+          return scheduleHour === currentHourNormalized;
         });
 
         if (matchingTimes.length === 0) continue;
 
-        // Check if we already sent a reminder in the last 15 minutes
+        // Check if we already sent a reminder for this specific hour
         if (pm.lastSentAt) {
-          const fiftenMinutesAgo = new Date(now.getTime() - 15 * 60 * 1000);
-          if (pm.lastSentAt > fiftenMinutesAgo) {
+          const lastSentHour = this.normalizeTimeToHour(
+            new Intl.DateTimeFormat('en-US', {
+              timeZone: 'Africa/Cairo',
+              hour: 'numeric',
+              hour12: true,
+            }).format(pm.lastSentAt),
+          );
+
+          // Check if last sent was today and same hour
+          const lastSentDate = new Date(pm.lastSentAt);
+          const isSameDay = lastSentDate.toDateString() === now.toDateString();
+
+          if (isSameDay && lastSentHour === currentHourNormalized) {
             this.logger.debug(
-              `Skipping ${pm.medicine?.name} - reminder already sent recently`,
+              `Skipping ${pm.medicine?.name} - reminder already sent for ${currentHour}`,
             );
             continue;
           }
@@ -128,21 +148,20 @@ export class TasksService {
         if (!patientMedicationsMap.has(patientId)) {
           patientMedicationsMap.set(patientId, {
             patient: pm.patient,
+            medicineIds: [],
             medications: [],
           });
         }
 
-        patientMedicationsMap.get(patientId)!.medications.push({
+        const patientData = patientMedicationsMap.get(patientId)!;
+        patientData.medicineIds.push(pm.id);
+        patientData.medications.push({
           name: pm.medicine?.name || 'Unknown',
           dosage: pm.dosage || 'As prescribed',
           time: matchingTimes[0],
           startDate: pm.startDate,
           endDate: pm.endDate,
         });
-
-        // Update lastSentAt
-        pm.lastSentAt = now;
-        await this.patientMedicineRepository.save(pm);
       }
 
       // Send emails to each patient
@@ -170,6 +189,11 @@ export class TasksService {
             this.logger.log(
               `Reminder sent to ${user.email} for ${data.medications.length} medication(s)`,
             );
+
+            // Update lastSentAt ONLY after successful email
+            await this.patientMedicineRepository.update(data.medicineIds, {
+              lastSentAt: now,
+            });
           }
         } catch (error) {
           this.logger.error(
@@ -191,18 +215,24 @@ export class TasksService {
   }
 
   /**
-   * Normalize time string for comparison
+   * Normalize time string to 24-hour format for proper comparison
    * Handles formats like "8 AM", "8AM", "08:00 AM", etc.
+   * Returns hour in 24-hour format (0-23)
    */
-  private normalizeTime(time: string): string {
+  private normalizeTimeToHour(time: string): number {
     const cleaned = time.toUpperCase().replace(/\s+/g, '').trim();
-    // Extract hour and AM/PM
     const match = cleaned.match(/(\d{1,2})(?::\d{2})?(?::?\d{2})?(AM|PM)/);
     if (match) {
-      const hour = parseInt(match[1], 10);
+      let hour = parseInt(match[1], 10);
       const period = match[2];
-      return `${hour}${period}`;
+      // Convert to 24-hour format
+      if (period === 'PM' && hour !== 12) {
+        hour += 12;
+      } else if (period === 'AM' && hour === 12) {
+        hour = 0;
+      }
+      return hour;
     }
-    return cleaned;
+    return -1; // Invalid time
   }
 }
