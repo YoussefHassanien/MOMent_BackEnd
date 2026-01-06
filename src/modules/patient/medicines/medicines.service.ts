@@ -149,8 +149,6 @@ export class MedicinesService {
 
       if (!interaction) continue;
 
-      console.log(interaction);
-
       if (
         interaction.category === InteractionCategory.D ||
         interaction.category === InteractionCategory.X
@@ -206,8 +204,6 @@ export class MedicinesService {
     });
 
     const patientMedicineNames = patientMedicines.map((pm) => pm.medicine.name);
-
-    console.log(patientMedicineNames);
 
     const isDrugInteractionExists = await this.checkDrugInteraction(
       patientMedicineNames,

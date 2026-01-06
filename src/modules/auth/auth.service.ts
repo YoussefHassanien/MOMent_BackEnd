@@ -269,7 +269,6 @@ export class AuthService {
           message: 'Invalid refresh token!',
         });
       }
-      console.log(error);
       throw new InternalServerErrorException({
         message: 'Access token refresh failed',
       });
