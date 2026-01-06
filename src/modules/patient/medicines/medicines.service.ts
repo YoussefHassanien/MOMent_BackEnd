@@ -156,7 +156,7 @@ export class MedicinesService {
         return { isDrugInteractionExists: true, drug: drugs[i] };
     }
 
-    return { isDrugInteractionExists: true };
+    return { isDrugInteractionExists: false };
   }
 
   async createPatientMedicine(
