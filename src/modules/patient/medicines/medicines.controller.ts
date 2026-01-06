@@ -7,21 +7,21 @@ import {
   ParseIntPipe,
   ParseUUIDPipe,
   Post,
+  Put,
   Query,
   Req,
   UseGuards,
-  Put,
 } from '@nestjs/common';
 import { Request } from 'express';
-import { AuthenticationGuard, AuthorizationGuard } from '../../auth/auth.guard';
-import { Roles } from '../../auth/roles.decorator';
 import { Role } from '../../../constants/enums';
+import { AuthenticationGuard, AuthorizationGuard } from '../../auth/auth.guard';
 import { JwtPayload } from '../../auth/jwt.payload';
-import { MedicinesService } from './medicines.service';
+import { Roles } from '../../auth/roles.decorator';
 import { CreatePatientMedicineDto } from './dto/create-patient-medicine.dto';
 import { UpdatePatientMedicineDto } from './dto/update-patient-medicine.dto';
+import { MedicinesService } from './medicines.service';
 
-@Controller('patient/medicines')
+@Controller('medicines')
 @UseGuards(AuthenticationGuard, AuthorizationGuard)
 @Roles(Role.PATIENT, Role.ADMIN)
 export class MedicinesController {
