@@ -1,7 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   ArrayNotEmpty,
   IsArray,
+  IsDate,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -27,10 +29,20 @@ export class CreatePatientMedicineDto {
   scheduleTimes: string[];
 
   @ApiProperty({
-    description: 'Duration (optional) e.g. 7 days',
+    description: 'Start date for taking this medicine',
     required: false,
   })
   @IsOptional()
-  @IsString()
-  duration?: string;
+  @Type(() => Date)
+  @IsDate()
+  startDate: Date;
+
+  @ApiProperty({
+    description: 'End date for taking this medicine',
+    required: false,
+  })
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  endDate: Date;
 }

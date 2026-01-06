@@ -1,8 +1,11 @@
-import { Injectable, OnModuleInit, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { DrugInteraction } from '../../../database';
-import { CreateDrugInteractionDto, UpdateDrugInteractionDto } from './dto/admin-drug-interactions.dto';
+import {
+  CreateDrugInteractionDto,
+  UpdateDrugInteractionDto,
+} from './dto/admin-drug-interactions.dto';
 
 @Injectable()
 export class DrugInteractionsService implements OnModuleInit {
@@ -23,7 +26,7 @@ export class DrugInteractionsService implements OnModuleInit {
     });
 
     this.drugSet.clear();
-    interactions.forEach(interaction => {
+    interactions.forEach((interaction) => {
       this.drugSet.add(interaction.drug1);
       this.drugSet.add(interaction.drug2);
     });
@@ -52,7 +55,9 @@ export class DrugInteractionsService implements OnModuleInit {
     const uniqueDrugs = [...new Set(drugs)];
 
     if (uniqueDrugs.length < 2) {
-      warnings.push('Please enter at least two drugs to check for interactions');
+      warnings.push(
+        'Please enter at least two drugs to check for interactions',
+      );
       return { interactions, warnings };
     }
 
@@ -60,9 +65,11 @@ export class DrugInteractionsService implements OnModuleInit {
       warnings.push('Duplicate drugs found, duplicates removed');
     }
 
-    const unknownDrugs = uniqueDrugs.filter(drug => !this.drugSet.has(drug));
+    const unknownDrugs = uniqueDrugs.filter((drug) => !this.drugSet.has(drug));
     if (unknownDrugs.length > 0) {
-      warnings.push(`Unknown drugs: ${unknownDrugs.join(', ')}. Please check spelling or choose from suggestions.`);
+      warnings.push(
+        `Unknown drugs: ${unknownDrugs.join(', ')}. Please check spelling or choose from suggestions.`,
+      );
     }
 
     // Check pairwise interactions
@@ -75,8 +82,8 @@ export class DrugInteractionsService implements OnModuleInit {
         const interaction = await this.drugInteractionRepository.findOne({
           where: [
             { drug1, drug2 },
-            { drug1: drug2, drug2: drug1 }
-          ]
+            { drug1: drug2, drug2: drug1 },
+          ],
         });
 
         if (interaction) {
@@ -100,9 +107,12 @@ export class DrugInteractionsService implements OnModuleInit {
     });
   }
 
-  async createDrugInteraction(dto: CreateDrugInteractionDto): Promise<DrugInteraction> {
+  async createDrugInteraction(
+    dto: CreateDrugInteractionDto,
+  ): Promise<DrugInteraction> {
     const interaction = this.drugInteractionRepository.create(dto);
-    const savedInteraction = await this.drugInteractionRepository.save(interaction);
+    const savedInteraction =
+      await this.drugInteractionRepository.save(interaction);
 
     // Refresh the drug set cache
     await this.loadDrugSet();
@@ -110,7 +120,10 @@ export class DrugInteractionsService implements OnModuleInit {
     return savedInteraction;
   }
 
-  async updateDrugInteraction(id: number, dto: UpdateDrugInteractionDto): Promise<DrugInteraction> {
+  async updateDrugInteraction(
+    id: number,
+    dto: UpdateDrugInteractionDto,
+  ): Promise<DrugInteraction> {
     const interaction = await this.drugInteractionRepository.findOneBy({ id });
 
     if (!interaction) {
@@ -119,7 +132,8 @@ export class DrugInteractionsService implements OnModuleInit {
 
     // Update the interaction with the provided fields
     Object.assign(interaction, dto);
-    const updatedInteraction = await this.drugInteractionRepository.save(interaction);
+    const updatedInteraction =
+      await this.drugInteractionRepository.save(interaction);
 
     // Refresh the drug set cache
     await this.loadDrugSet();

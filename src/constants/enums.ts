@@ -78,3 +78,17 @@ export enum AllergiesTypes {
   FOOD = 'Food',
   DRUG = 'Drug',
 }
+
+export enum MedicationSafetyLabel {
+  SAFE = 'SAFE',
+  CAUTION = 'CAUTION',
+  DANGER = 'DANGER',
+}
+
+export enum InteractionCategory {
+  A = 'A',
+  B = 'B',
+  C = 'C',
+  D = 'D',
+  X = 'X',
+}

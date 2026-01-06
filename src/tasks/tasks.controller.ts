@@ -1,7 +1,10 @@
 import { Controller, Post, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Role } from '../constants/enums';
-import { AuthenticationGuard, AuthorizationGuard } from '../modules/auth/auth.guard';
+import {
+  AuthenticationGuard,
+  AuthorizationGuard,
+} from '../modules/auth/auth.guard';
 import { Roles } from '../modules/auth/roles.decorator';
 import { TasksService } from './tasks.service';
 
@@ -17,7 +20,9 @@ export class TasksController {
    */
   @Post('trigger-medication-reminders')
   @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'Manually trigger medication reminders (Admin only)' })
+  @ApiOperation({
+    summary: 'Manually trigger medication reminders (Admin only)',
+  })
   @ApiResponse({
     status: 200,
     description: 'Medication reminders triggered successfully',

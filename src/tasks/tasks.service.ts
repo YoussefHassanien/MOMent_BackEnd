@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { LessThan, Repository, IsNull, Or } from 'typeorm';
-import { OTP, PatientMedicine, Patient, User } from '../database';
+import { LessThan, Repository } from 'typeorm';
+import { OTP, Patient, PatientMedicine, User } from '../database';
 import { EmailService } from '../services/email.service';
 
 @Injectable()
@@ -49,16 +49,16 @@ export class TasksService {
   }
 
   /**
-   * Medication reminder cron job - runs every 30 minutes
+   * Medication reminder cron job - runs every 15 minutes
    * Checks if any medications are due and sends email reminders
    */
-  @Cron('0,30 * * * *', {
+  @Cron('0,15 * * * *', {
     name: 'sendMedicationReminders',
     timeZone: 'Africa/Cairo',
   })
   async sendMedicationReminders() {
     this.logger.log('Starting medication reminder check...');
-    
+
     try {
       // Get the current time in Egypt timezone
       const now = new Date();
@@ -68,13 +68,16 @@ export class TasksService {
         minute: 'numeric',
         hour12: true,
       }).format(now);
-      
+
       // Extract hour for matching (e.g., "8 AM", "8 PM")
       const currentHour = new Intl.DateTimeFormat('en-US', {
         timeZone: 'Africa/Cairo',
         hour: 'numeric',
         hour12: true,
-      }).format(now).replace(/\s+/g, ' ').trim();
+      })
+        .format(now)
+        .replace(/\s+/g, ' ')
+        .trim();
 
       this.logger.log(`Current Egypt time: ${egyptTime}, Hour: ${currentHour}`);
 
@@ -84,31 +87,44 @@ export class TasksService {
       });
 
       // Group medications by patient
-      const patientMedicationsMap = new Map<number, {
-        patient: Patient;
-        medications: { name: string; dosage: string; time: string }[];
-      }>();
+      const patientMedicationsMap = new Map<
+        number,
+        {
+          patient: Patient;
+          medications: {
+            name: string;
+            dosage: string;
+            time: string;
+            startDate: Date;
+            endDate: Date;
+          }[];
+        }
+      >();
 
       for (const pm of patientMedicines) {
-        if (!pm.scheduleTimes || !pm.patient) continue;
+        if (!pm.startDate || !pm.endDate || !pm.patient) continue;
 
-        const scheduleTimes = pm.scheduleTimes.split(',').map(t => t.trim());
-        
+        if (now < pm.startDate || now > pm.endDate) continue;
+
+        const scheduleTimes = pm.scheduleTimes.split(',').map((t) => t.trim());
+
         // Check if any scheduled time matches current hour
-        const matchingTimes = scheduleTimes.filter(scheduleTime => {
+        const matchingTimes = scheduleTimes.filter((scheduleTime) => {
           // Normalize both times for comparison
           const normalizedSchedule = this.normalizeTime(scheduleTime);
           const normalizedCurrent = this.normalizeTime(currentHour);
-          return normalizedSchedule === normalizedCurrent;
+          return normalizedSchedule <= normalizedCurrent;
         });
 
         if (matchingTimes.length === 0) continue;
 
-        // Check if we already sent a reminder in the last 55 minutes
+        // Check if we already sent a reminder in the last 15 minutes
         if (pm.lastSentAt) {
-          const fiftyFiveMinutesAgo = new Date(now.getTime() - 55 * 60 * 1000);
-          if (pm.lastSentAt > fiftyFiveMinutesAgo) {
-            this.logger.debug(`Skipping ${pm.medicine?.name} - reminder already sent recently`);
+          const fiftenMinutesAgo = new Date(now.getTime() - 15 * 60 * 1000);
+          if (pm.lastSentAt > fiftenMinutesAgo) {
+            this.logger.debug(
+              `Skipping ${pm.medicine?.name} - reminder already sent recently`,
+            );
             continue;
           }
         }
@@ -125,6 +141,8 @@ export class TasksService {
           name: pm.medicine?.name || 'Unknown',
           dosage: pm.dosage || 'As prescribed',
           time: matchingTimes[0],
+          startDate: pm.startDate,
+          endDate: pm.endDate,
         });
 
         // Update lastSentAt
@@ -154,14 +172,21 @@ export class TasksService {
 
           if (success) {
             sentCount++;
-            this.logger.log(`Reminder sent to ${user.email} for ${data.medications.length} medication(s)`);
+            this.logger.log(
+              `Reminder sent to ${user.email} for ${data.medications.length} medication(s)`,
+            );
           }
         } catch (error) {
-          this.logger.error(`Failed to send reminder to patient ${patientId}:`, error);
+          this.logger.error(
+            `Failed to send reminder to patient ${patientId}:`,
+            error,
+          );
         }
       }
 
-      this.logger.log(`Medication reminder check completed. Sent ${sentCount} emails.`);
+      this.logger.log(
+        `Medication reminder check completed. Sent ${sentCount} emails.`,
+      );
     } catch (error) {
       this.logger.error(
         'Failed to send medication reminders',

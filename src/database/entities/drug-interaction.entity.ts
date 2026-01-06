@@ -6,14 +6,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-
-export enum InteractionCategory {
-  A = 'A',
-  B = 'B',
-  C = 'C',
-  D = 'D',
-  X = 'X',
-}
+import { InteractionCategory } from '../../constants/enums';
 
 @Entity('DrugInteractions')
 export class DrugInteraction {

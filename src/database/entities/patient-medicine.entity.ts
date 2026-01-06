@@ -1,7 +1,6 @@
 import {
   IsDate,
   IsInt,
-  IsNotEmpty,
   IsOptional,
   IsPositive,
   IsString,
@@ -18,14 +17,9 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { MedicationSafetyLabel } from '../../constants/enums';
 import { Medicine } from './medicine.entity';
 import { Patient } from './patient.entity';
-
-export enum MedicationSafetyLabel {
-  SAFE = 'SAFE',
-  CAUTION = 'CAUTION',
-  DANGER = 'DANGER',
-}
 
 @Entity('PatientMedicines')
 export class PatientMedicine {
@@ -71,12 +65,21 @@ export class PatientMedicine {
   @IsString()
   scheduleTimes: string;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   @IsOptional()
-  @IsString()
-  duration: string;
+  @IsDate()
+  startDate: Date;
 
-  @Column({ type: 'enum', enum: MedicationSafetyLabel, default: MedicationSafetyLabel.CAUTION })
+  @Column({ type: 'timestamp', nullable: true })
+  @IsOptional()
+  @IsDate()
+  endDate: Date;
+
+  @Column({
+    type: 'enum',
+    enum: MedicationSafetyLabel,
+    default: MedicationSafetyLabel.CAUTION,
+  })
   safetyLabel: MedicationSafetyLabel;
 
   @Column({ default: false })

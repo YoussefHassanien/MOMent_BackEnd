@@ -1,13 +1,23 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Patient } from '../../../database/entities/patient.entity';
-import { Medicine } from '../../../database/entities/medicine.entity';
-import { PatientMedicine } from '../../../database/entities/patient-medicine.entity';
-import { MedicinesService } from './medicines.service';
+import {
+  DrugInteraction,
+  Medicine,
+  Patient,
+  PatientMedicine,
+} from '../../../database';
 import { MedicinesController } from './medicines.controller';
+import { MedicinesService } from './medicines.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Patient, Medicine, PatientMedicine])],
+  imports: [
+    TypeOrmModule.forFeature([
+      Patient,
+      Medicine,
+      PatientMedicine,
+      DrugInteraction,
+    ]),
+  ],
   providers: [MedicinesService],
   controllers: [MedicinesController],
   exports: [MedicinesService],

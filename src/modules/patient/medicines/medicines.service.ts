@@ -5,12 +5,16 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ILike, Repository } from 'typeorm';
-import { Medicine } from '../../../database/entities/medicine.entity';
 import {
+  InteractionCategory,
   MedicationSafetyLabel,
+} from '../../../constants/enums';
+import {
+  DrugInteraction,
+  Medicine,
+  Patient,
   PatientMedicine,
-} from '../../../database/entities/patient-medicine.entity';
-import { Patient } from '../../../database/entities/patient.entity';
+} from '../../../database';
 import { JwtPayload } from '../../auth/jwt.payload';
 import { CreatePatientMedicineDto } from './dto/create-patient-medicine.dto';
 import { UpdatePatientMedicineDto } from './dto/update-patient-medicine.dto';
@@ -24,6 +28,8 @@ export class MedicinesService {
     private readonly medicineRepository: Repository<Medicine>,
     @InjectRepository(PatientMedicine)
     private readonly patientMedicineRepository: Repository<PatientMedicine>,
+    @InjectRepository(DrugInteraction)
+    private readonly drugInteractionRepository: Repository<DrugInteraction>,
   ) {}
 
   async search(query: string, page = 1, limit = 30) {
@@ -128,6 +134,33 @@ export class MedicinesService {
     };
   }
 
+  private async checkDrugInteraction(
+    drugs: string[],
+    newDrug: string,
+  ): Promise<boolean> {
+    for (let i = 0; i < drugs.length; i++) {
+      // Check both combinations since the data might be stored in either order
+      const interaction = await this.drugInteractionRepository.findOne({
+        where: [
+          { drug1: newDrug, drug2: drugs[i] },
+          { drug1: drugs[i], drug2: newDrug },
+        ],
+      });
+
+      if (!interaction) continue;
+
+      console.log(interaction);
+
+      if (
+        interaction.category === InteractionCategory.D ||
+        interaction.category === InteractionCategory.X
+      )
+        return true;
+    }
+
+    return false;
+  }
+
   async createPatientMedicine(
     dto: CreatePatientMedicineDto,
     userData: JwtPayload,
@@ -158,12 +191,42 @@ export class MedicinesService {
       throw new BadRequestException({ message: safety.message });
     }
 
+    const patientMedicines = await this.patientMedicineRepository.find({
+      select: {
+        medicine: {
+          name: true,
+        },
+      },
+      relations: {
+        medicine: true,
+      },
+      where: {
+        patientId: patient.id,
+      },
+    });
+
+    const patientMedicineNames = patientMedicines.map((pm) => pm.medicine.name);
+
+    console.log(patientMedicineNames);
+
+    const isDrugInteractionExists = await this.checkDrugInteraction(
+      patientMedicineNames,
+      medicine.name,
+    );
+
+    if (isDrugInteractionExists) {
+      throw new BadRequestException({
+        message: "This drug can't be taken with the existing drugs",
+      });
+    }
+
     const pm = this.patientMedicineRepository.create({
       patientId: patient.id,
       medicineId: medicine.id,
       dosage: dto.dosage,
       scheduleTimes: (dto.scheduleTimes || []).join(','),
-      duration: dto.duration,
+      startDate: dto.startDate,
+      endDate: dto.endDate,
       safetyLabel: safety.label,
       contraindicatedByAllergy: false,
     });
@@ -175,7 +238,8 @@ export class MedicinesService {
       name: medicine.name,
       dosage: pm.dosage,
       scheduleTimes: dto.scheduleTimes,
-      duration: pm.duration,
+      startDate: pm.startDate,
+      endDate: pm.endDate,
       safetyLabel: pm.safetyLabel,
       safetyMessage: safety.message,
     };
@@ -201,7 +265,8 @@ export class MedicinesService {
         name: it.medicine?.name,
         dosage: it.dosage,
         scheduleTimes: it.scheduleTimes ? it.scheduleTimes.split(',') : [],
-        duration: it.duration,
+        startDate: it.startDate,
+        endDate: it.endDate,
         safetyLabel: it.safetyLabel,
         safety: {
           contraindications: it.medicine?.contraindications,
@@ -234,7 +299,8 @@ export class MedicinesService {
 
     if (dto.dosage) pm.dosage = dto.dosage;
     if (dto.scheduleTimes) pm.scheduleTimes = dto.scheduleTimes.join(',');
-    if (dto.duration) pm.duration = dto.duration;
+    if (dto.startDate) pm.startDate = dto.startDate;
+    if (dto.endDate) pm.endDate = dto.endDate;
 
     await this.patientMedicineRepository.save(pm);
 

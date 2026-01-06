@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsArray, IsDate, IsOptional, IsString } from 'class-validator';
 
 export class UpdatePatientMedicineDto {
   @ApiProperty({
@@ -19,10 +20,20 @@ export class UpdatePatientMedicineDto {
   scheduleTimes?: string[];
 
   @ApiProperty({
-    description: 'Duration (optional) e.g. 7 days',
+    description: 'Start date for taking this medicine',
     required: false,
   })
+  @Type(() => Date)
   @IsOptional()
-  @IsString()
-  duration?: string;
+  @IsDate()
+  startDate?: Date;
+
+  @ApiProperty({
+    description: 'End date for taking this medicine',
+    required: false,
+  })
+  @Type(() => Date)
+  @IsOptional()
+  @IsDate()
+  endDate?: Date;
 }
