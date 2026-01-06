@@ -33,7 +33,7 @@ export enum VitalSignUnits {
   KG = 'kg', // Weight
   BPM = 'bpm', // Heart rate
   YEARS = 'years', // Age
-  KG_MM = 'kg/(m*m)', // Body mass index
+  KG_MM = 'kg/(m²)', // Body mass index
 }
 
 export enum CloudinaryFolders {
