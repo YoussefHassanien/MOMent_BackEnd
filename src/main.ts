@@ -12,7 +12,7 @@ const bootstrap = async () => {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger:
       process.env.ENVIRONMENT === Environment.PROD
-        ? ['warn', 'error', 'fatal', 'log']
+        ? ['warn', 'error', 'fatal']
         : ['debug', 'error', 'fatal', 'log', 'verbose', 'warn'],
   });
   const configService = app.get(ConfigService);
