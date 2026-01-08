@@ -58,8 +58,25 @@ export class TasksService {
     this.logger.log('Starting medication reminder check...');
 
     const now = new Date();
-    const cairoTimeNow = new Date(
-      now.toLocaleString('en-US', { timeZone: 'Africa/Cairo' }),
+
+    // Get current Cairo time components directly
+    const cairoHour = parseInt(
+      new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Africa/Cairo',
+        hour: 'numeric',
+        hour12: false,
+      }).format(now),
+    );
+    const cairoMinute = parseInt(
+      new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Africa/Cairo',
+        minute: 'numeric',
+      }).format(now),
+    );
+    const cairoTimeInMinutes = cairoHour * 60 + cairoMinute;
+
+    this.logger.log(
+      `Current Cairo time: ${cairoHour}:${cairoMinute.toString().padStart(2, '0')}`,
     );
 
     const patientsMedications = await this.patientMedicineRepository.find({
@@ -92,33 +109,37 @@ export class TasksService {
       }[] = [];
 
       for (const med of medications) {
-        const scheduleTimes = med.scheduleTimes.split(',');
-        for (const timeStr of scheduleTimes) {
-          // Check if reminder was sent recently
-          if (
-            now.getTime() - 10 * 60 * 1000 <=
-              new Date(med.lastSentAt).getTime() &&
-            new Date(med.lastSentAt) < now
-          )
-            continue;
+        if (!med.scheduleTimes) continue;
 
-          const [hours, minutes] = timeStr.split(':').map(Number);
-          const scheduledDate = new Date();
-          scheduledDate.setHours(hours, minutes, 0, 0);
-          const scheduledDateCairoTime = new Date(
-            scheduledDate.toLocaleString('en-US', { timeZone: 'Africa/Cairo' }),
+        const scheduleTimes = med.scheduleTimes.split(',').map((t) => t.trim());
+
+        for (const timeStr of scheduleTimes) {
+          // Check if reminder was sent recently (within last hour)
+          if (med.lastSentAt) {
+            const hoursSinceLastSent =
+              (now.getTime() - new Date(med.lastSentAt).getTime()) /
+              (1000 * 60 * 60);
+            if (hoursSinceLastSent < 1) continue;
+          }
+
+          // Parse 24-hour format (e.g., "02:40" or "14:30")
+          const [hours, minutes = 0] = timeStr.split(':').map(Number);
+          const scheduledTimeInMinutes = hours * 60 + minutes;
+
+          // Check if current Cairo time is within 0-10 minutes AFTER scheduled time
+          const diff = cairoTimeInMinutes - scheduledTimeInMinutes;
+          const isWithinWindow = diff >= 0 && diff <= 10;
+
+          this.logger.log(
+            `Checking ${med.medicine.name} at ${timeStr}: scheduled=${scheduledTimeInMinutes}min, now=${cairoTimeInMinutes}min, diff=${diff}, inWindow=${isWithinWindow}`,
           );
 
-          if (
-            cairoTimeNow.getTime() - 10 * 60 * 1000 <=
-              scheduledDateCairoTime.getTime() &&
-            scheduledDateCairoTime < cairoTimeNow
-          ) {
+          if (isWithinWindow) {
             allDueMedications.push({
               name: med.medicine.name,
               dosage: med.dosage,
               time: timeStr,
-              medicineId: med.medicine.id,
+              medicineId: med.id,
             });
           }
         }
