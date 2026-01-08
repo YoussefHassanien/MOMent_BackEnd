@@ -37,7 +37,7 @@ export class EmailService {
   ): Promise<boolean> {
     try {
       const mailOptions = {
-        from: `"MOMent App" <${this.configService.getOrThrow<string>('SMTP_USER')}>`,
+        from: `"MOMent App" <${this.configService.getOrThrow<string>('smtpUser')}>`,
         to: email,
         subject: 'Your OTP Code - MOMent Verification',
         html: this.generateOtpEmailTemplate(userName, otp),
@@ -110,7 +110,7 @@ export class EmailService {
   ): Promise<boolean> {
     try {
       const mailOptions = {
-        from: `"MOMent App" <${this.configService.getOrThrow<string>('SMTP_USER')}>`,
+        from: `"MOMent App" <${this.configService.getOrThrow<string>('smtpUser')}>`,
         to: email,
         subject: '💊 Medication Reminder - MOMent',
         html: this.generateMedicationReminderTemplate(userName, medications),
@@ -121,7 +121,10 @@ export class EmailService {
       this.logger.log(`Medication reminder sent to ${email}`);
       return true;
     } catch (error) {
-      this.logger.error(`Failed to send medication reminder to ${email}:`, error);
+      this.logger.error(
+        `Failed to send medication reminder to ${email}:`,
+        error,
+      );
       return false;
     }
   }

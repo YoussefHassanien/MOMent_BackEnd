@@ -1,8 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { LessThan, Repository } from 'typeorm';
-import { OTP, Patient, PatientMedicine, User } from '../database';
+import {
+  IsNull,
+  LessThan,
+  LessThanOrEqual,
+  MoreThanOrEqual,
+  Or,
+  Repository,
+} from 'typeorm';
+import { OTP, PatientMedicine } from '../database';
 import { EmailService } from '../services/email.service';
 
 @Injectable()
@@ -14,10 +21,6 @@ export class TasksService {
     private readonly otpRepository: Repository<OTP>,
     @InjectRepository(PatientMedicine)
     private readonly patientMedicineRepository: Repository<PatientMedicine>,
-    @InjectRepository(Patient)
-    private readonly patientRepository: Repository<Patient>,
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
     private readonly emailService: EmailService,
   ) {}
 
@@ -54,185 +57,95 @@ export class TasksService {
   private async sendMedicationReminders() {
     this.logger.log('Starting medication reminder check...');
 
-    try {
-      // Get the current time in Egypt timezone
-      const now = new Date();
-      const egyptTime = new Intl.DateTimeFormat('en-US', {
-        timeZone: 'Africa/Cairo',
-        hour: 'numeric',
-        minute: 'numeric',
-        hour12: true,
-      }).format(now);
+    const now = new Date();
+    const cairoTimeNow = new Date(
+      now.toLocaleString('en-US', { timeZone: 'Africa/Cairo' }),
+    );
 
-      // Extract hour for matching (e.g., "8 AM", "8 PM")
-      const currentHour = new Intl.DateTimeFormat('en-US', {
-        timeZone: 'Africa/Cairo',
-        hour: 'numeric',
-        hour12: true,
-      })
-        .format(now)
-        .replace(/\s+/g, ' ')
-        .trim();
+    const patientsMedications = await this.patientMedicineRepository.find({
+      relations: {
+        patient: {
+          user: true,
+        },
+        medicine: true,
+      },
+      where: {
+        startDate: Or(LessThanOrEqual(now), IsNull()),
+        endDate: Or(MoreThanOrEqual(now), IsNull()),
+      },
+    });
 
-      this.logger.log(`Current Egypt time: ${egyptTime}, Hour: ${currentHour}`);
-
-      // Get all patient medicines with schedules
-      const patientMedicines = await this.patientMedicineRepository.find({
-        relations: ['medicine', 'patient'],
-      });
-
-      // Group medications by patient
-      const patientMedicationsMap = new Map<
-        number,
-        {
-          patient: Patient;
-          medicineIds: number[];
-          medications: {
-            name: string;
-            dosage: string;
-            time: string;
-            startDate: Date;
-            endDate: Date;
-          }[];
-        }
-      >();
-
-      const currentHourNormalized = this.normalizeTimeToHour(currentHour);
-
-      for (const pm of patientMedicines) {
-        if (!pm.startDate || !pm.endDate || !pm.patient) continue;
-
-        // Check if medication is within valid date range
-        const today = new Date(now);
-        today.setHours(0, 0, 0, 0);
-        const startDate = new Date(pm.startDate);
-        startDate.setHours(0, 0, 0, 0);
-        const endDate = new Date(pm.endDate);
-        endDate.setHours(23, 59, 59, 999);
-
-        if (today < startDate || today > endDate) continue;
-
-        const scheduleTimes = pm.scheduleTimes.split(',').map((t) => t.trim());
-
-        // Check if any scheduled time matches current hour (exact match)
-        const matchingTimes = scheduleTimes.filter((scheduleTime) => {
-          const scheduleHour = this.normalizeTimeToHour(scheduleTime);
-          return scheduleHour === currentHourNormalized;
-        });
-
-        if (matchingTimes.length === 0) continue;
-
-        // Check if we already sent a reminder for this specific hour
-        if (pm.lastSentAt) {
-          const lastSentHour = this.normalizeTimeToHour(
-            new Intl.DateTimeFormat('en-US', {
-              timeZone: 'Africa/Cairo',
-              hour: 'numeric',
-              hour12: true,
-            }).format(pm.lastSentAt),
-          );
-
-          // Check if last sent was today and same hour
-          const lastSentDate = new Date(pm.lastSentAt);
-          const isSameDay = lastSentDate.toDateString() === now.toDateString();
-
-          if (isSameDay && lastSentHour === currentHourNormalized) {
-            this.logger.debug(
-              `Skipping ${pm.medicine?.name} - reminder already sent for ${currentHour}`,
-            );
-            continue;
-          }
-        }
-
-        const patientId = pm.patient.id;
-        if (!patientMedicationsMap.has(patientId)) {
-          patientMedicationsMap.set(patientId, {
-            patient: pm.patient,
-            medicineIds: [],
-            medications: [],
-          });
-        }
-
-        const patientData = patientMedicationsMap.get(patientId)!;
-        patientData.medicineIds.push(pm.id);
-        patientData.medications.push({
-          name: pm.medicine?.name || 'Unknown',
-          dosage: pm.dosage || 'As prescribed',
-          time: matchingTimes[0],
-          startDate: pm.startDate,
-          endDate: pm.endDate,
-        });
+    const patientsMedicationsMap = new Map<number, PatientMedicine[]>();
+    for (const med of patientsMedications) {
+      if (!patientsMedicationsMap.has(med.patientId)) {
+        patientsMedicationsMap.set(med.patientId, []);
       }
+      patientsMedicationsMap.get(med.patientId)!.push(med);
+    }
 
-      // Send emails to each patient
-      let sentCount = 0;
-      for (const [patientId, data] of patientMedicationsMap) {
-        try {
-          // Get user email
-          const user = await this.userRepository.findOne({
-            where: { patient: { id: patientId } },
-          });
+    for (const [patientId, medications] of patientsMedicationsMap.entries()) {
+      const allDueMedications: {
+        name: string;
+        dosage: string;
+        time: string;
+        medicineId: number;
+      }[] = [];
 
-          if (!user) {
-            this.logger.warn(`No user found for patient ${patientId}`);
+      for (const med of medications) {
+        const scheduleTimes = med.scheduleTimes.split(',');
+        for (const timeStr of scheduleTimes) {
+          // Check if reminder was sent recently
+          if (
+            now.getTime() - 10 * 60 * 1000 <=
+              new Date(med.lastSentAt).getTime() &&
+            new Date(med.lastSentAt) < now
+          )
             continue;
-          }
 
-          const success = await this.emailService.sendMedicationReminderEmail(
-            user.email,
-            user.name,
-            data.medications,
+          const [hours, minutes] = timeStr.split(':').map(Number);
+          const scheduledDate = new Date();
+          scheduledDate.setHours(hours, minutes, 0, 0);
+          const scheduledDateCairoTime = new Date(
+            scheduledDate.toLocaleString('en-US', { timeZone: 'Africa/Cairo' }),
           );
 
-          if (success) {
-            sentCount++;
-            this.logger.log(
-              `Reminder sent to ${user.email} for ${data.medications.length} medication(s)`,
-            );
-
-            // Update lastSentAt ONLY after successful email
-            await this.patientMedicineRepository.update(data.medicineIds, {
-              lastSentAt: now,
+          if (
+            cairoTimeNow.getTime() - 10 * 60 * 1000 <=
+              scheduledDateCairoTime.getTime() &&
+            scheduledDateCairoTime < cairoTimeNow
+          ) {
+            allDueMedications.push({
+              name: med.medicine.name,
+              dosage: med.dosage,
+              time: timeStr,
+              medicineId: med.medicine.id,
             });
           }
-        } catch (error) {
-          this.logger.error(
-            `Failed to send reminder to patient ${patientId}:`,
-            error,
-          );
         }
       }
 
-      this.logger.log(
-        `Medication reminder check completed. Sent ${sentCount} emails.`,
-      );
-    } catch (error) {
-      this.logger.error(
-        'Failed to send medication reminders',
-        error instanceof Error ? error.stack : String(error),
-      );
-    }
-  }
+      // Send one consolidated email per patient with all due medications
+      if (allDueMedications.length > 0) {
+        const user = medications[0].patient.user;
+        const success = await this.emailService.sendMedicationReminderEmail(
+          user.email,
+          user.name,
+          allDueMedications,
+        );
 
-  /**
-   * Normalize time string to 24-hour format for proper comparison
-   * Handles formats like "8 AM", "8AM", "08:00 AM", etc.
-   * Returns hour in 24-hour format (0-23)
-   */
-  private normalizeTimeToHour(time: string): number {
-    const cleaned = time.toUpperCase().replace(/\s+/g, '').trim();
-    const match = cleaned.match(/(\d{1,2})(?::\d{2})?(?::?\d{2})?(AM|PM)/);
-    if (match) {
-      let hour = parseInt(match[1], 10);
-      const period = match[2];
-      // Convert to 24-hour format
-      if (period === 'PM' && hour !== 12) {
-        hour += 12;
-      } else if (period === 'AM' && hour === 12) {
-        hour = 0;
+        if (success) {
+          // Update lastSentAt for all medications that were included
+          const medicineIds = allDueMedications.map((m) => m.medicineId);
+          await this.patientMedicineRepository.update(medicineIds, {
+            lastSentAt: now,
+          });
+          this.logger.log(
+            `Reminder sent to ${user.email} for ${allDueMedications.length} medication(s)`,
+          );
+        }
       }
-      return hour;
     }
-    return -1; // Invalid time
+
+    this.logger.log('Medication reminder check completed.');
   }
 }

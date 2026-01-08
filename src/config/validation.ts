@@ -92,7 +92,8 @@ class EnvironmentVariables {
   @IsEmail()
   SMTP_USER: string;
 
-  @IsAlpha()
+  @IsString()
+  @IsNotEmpty()
   SMTP_PASS: string;
 
   @IsAlpha()
